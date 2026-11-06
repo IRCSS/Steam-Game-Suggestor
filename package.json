@@ -24,7 +24,6 @@
     "test-frontend": "npm --prefix frontend test",
     "test-api-contract": "uv run pytest -k openapi_contract && npm --prefix frontend run gen-api:check",
     "test-e2e": "playwright test",
-    "test-live-smoke": "node -e \"console.log('No live providers exist yet (Phase 3+). Nothing to run.')\"",
     "check": "npm run lint-py && npm run typecheck-py && npm run typecheck-ui && npm run lint-ui && npm run test-api-contract && npm run test-backend && npm run test-frontend",
     "backup": "uv run python scripts/backup_db.py",
     "build-desktop": "build.bat --no-pause"

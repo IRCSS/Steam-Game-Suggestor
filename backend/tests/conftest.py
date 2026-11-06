@@ -64,6 +64,16 @@ def sample_client(sample_settings: Settings) -> Iterator[TestClient]:
         yield client
 
 
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """The original data file is local-only (not in git): skip tests that need it if absent."""
+    if REFERENCE_HTML.is_file():
+        return
+    skip = pytest.mark.skip(reason="reference/steam_game_suggester.html not present (local-only)")
+    for item in items:
+        if "reference" in item.keywords:
+            item.add_marker(skip)
+
+
 HttpHandler = Callable[[httpx.Request], httpx.Response]
 
 

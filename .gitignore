@@ -35,3 +35,21 @@ playwright/.cache/
 .idea/
 .DS_Store
 Thumbs.db
+
+# App state if the app folder is pointed at the repo (STEAM_STUDY_APP_DIR=.)
+/settings.json
+/settings.invalid-*.json
+/data/
+/studiesJPG/
+/backups/
+
+# Misc generated files
+*.log
+frontend/.schema.check.ts
+
+# Claude Code: personal settings stay local
+.claude/settings.local.json
+
+# Local-only inputs (not published): the original data file and the planning document
+/reference/
+/STEAM_STUDY_TOOL_IMPLEMENTATION_PLAN.md

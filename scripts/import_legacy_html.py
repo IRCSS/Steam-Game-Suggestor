@@ -2,7 +2,7 @@
 
 Usage:
     uv run python scripts/import_legacy_html.py \
-        [--source reference/steam_game_suggester.html] [--db .local/steam_study.sqlite3]
+        [--source reference/steam_game_suggester.html] [--db .local/data/catalog.sqlite3]
 """
 
 from __future__ import annotations
@@ -14,6 +14,11 @@ from pathlib import Path
 from app.config import REFERENCE_HTML, REFERENCE_SHA256, load_settings
 from app.db.connection import open_database
 from app.importer import ImportFormatError, import_legacy_html, sha256_file
+
+MISSING = (
+    "reference/steam_game_suggester.html is not in the repository (it is kept local). "
+    "Copy your steam_game_suggester.html there first - see README, 'Getting the data file'."
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.source.is_file():
         print(f"ERROR: source not found: {args.source}", file=sys.stderr)
+        if args.source == REFERENCE_HTML:
+            print(f"       {MISSING}", file=sys.stderr)
         return 2
     digest = sha256_file(args.source)
     if digest != REFERENCE_SHA256 and not args.allow_other_source:

@@ -1,145 +1,113 @@
 # Steam Study Tool
 
-Local-first tool that suggests Steam games to study, built from the legacy
-`reference/steam_game_suggester.html`. It is a React UI backed by a Python (FastAPI) service and a
-local SQLite database.
+A Windows desktop app for studying commercially successful indie games on Steam. It suggests
+games to study, keeps track of the ones you've studied, charts the market, keeps the data up to
+date from Steam, and can research each game with Claude: how many people made it, how long it
+took, what it cost, when it broke even, and why players loved it or didn't.
 
-**Status:** Phase 0 + Phase 1 (offline suggestion app at legacy parity). See
-[`STEAM_STUDY_TOOL_IMPLEMENTATION_PLAN.md`](STEAM_STUDY_TOOL_IMPLEMENTATION_PLAN.md) and
-[`docs/phase-reports/phase-1.md`](docs/phase-reports/phase-1.md).
+Everything runs locally. The app folder can live on a shared drive (e.g. Google Drive) and be used
+from several PCs at once.
 
-Everything runs offline. No Steam API key or AI key is needed, and nothing calls external services
-(Steam artwork is only loaded by your browser, from Steam's CDN).
+## What it does
 
-## Prerequisites
+- **Suggest**: draw a random game from about 3,700 games with an estimated revenue of $100K or
+  more, filtered by year, price, revenue, reviews, tags, or English support. Each game gets a
+  report: artwork, estimated revenue, rank in its release year, reviews, store pitch and tags.
+- **Studies**: "Add to Studies" archives a game so it's never suggested again. "Export as JPG"
+  saves a one-image study sheet, ready for a whiteboard such as Miro.
+- **LLM research**: one click asks Claude Code for a standard table: team size, development time,
+  cost at €50K per person-year, break-even after Steam's 30% cut, and why the game did as well as
+  it did and why not better (from the most helpful Steam reviews). Every item has a confidence
+  and sources.
+- **Charts**: revenue distribution, price vs revenue, tags by median revenue, and more.
+- **Data**: add new Steam games, refresh review counts, and look up languages, with the number of
+  requests and the time estimated before you start.
 
-- Python 3.12 and [uv](https://docs.astral.sh/uv/)
-- Node.js 20+ and npm
+Revenue is always an **estimate** (`reviews × 45 × price`), never actual sales. See
+[Data and caveats](#data-and-caveats).
 
-On Windows: `winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS.LTS`
+## Quick start (Windows)
 
-## Desktop app (the build to test)
+1. Put the data file in place (see [Getting the data file](#getting-the-data-file)).
+2. Install the prerequisites once:
+   `winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS.LTS`
+3. Double-click **`build.bat`** (about 2 minutes). It builds and self-tests the app.
+4. Run **`dist\SteamStudyTool\SteamStudyTool.exe`**. To share it, copy the whole
+   `dist\SteamStudyTool` folder to a shared drive.
 
-Double-click **`build.bat`** in the repo root. It installs dependencies, builds the UI, imports
-and verifies the dataset, packages everything with PyInstaller, and self-tests the result
-(about 2 minutes). Output:
+Optional, in Settings (gear icon, top right):
+- **Steam Web API key** (free, [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey)):
+  only needed for "Add new games" and the yearly deep check.
+- **LLM research** uses the [Claude Code](https://code.claude.com/docs/) CLI if it's installed on
+  the PC (detected automatically). Each run uses that Claude account: about 1 minute and
+  $0.20–0.50, capped at $2 by default.
+
+Everything the app stores sits next to the exe, and rebuilding never touches it:
 
 ```
-dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the window to quit
+SteamStudyTool.exe
+settings.json      settings (created on first run; edit with the gear icon)
+data\              game catalog, studies, research, Steam updates, logs
+studiesJPG\        exported study sheets
 ```
 
-- No terminal, server or browser needed: the exe starts the local server on a free localhost
-  port and opens the app in its own window (Edge WebView2, preinstalled on Windows 10/11). If
-  WebView2 is missing, it falls back to the default browser.
-- Everything lives **next to the exe**, so the folder can sit on a shared drive (e.g. G:) used
-  by several PCs at once:
-  ```
-  SteamStudyTool.exe
-  settings.json          created with defaults on first launch; edited via the gear icon
-  data\                  data folder (configurable in Settings)
-    catalog.sqlite3      game catalog (read-only while the app runs)
-    studies\<appid>.json one file per study ("Add to Studies")
-    cache\languages-<PC>.jsonl   Steam language lookups, one file per PC
-    logs\<PC>.log
-  studiesJPG\            "Export as JPG" output (configurable in Settings)
-  ```
-  Nothing is written to `%LOCALAPPDATA%`. (Builds before 0.2 used `%LOCALAPPDATA%\SteamStudyTool`;
-  that folder held no studies and can be deleted.)
-- Rebuilding keeps `settings.json`, `data\` and `studiesJPG\` in `dist\SteamStudyTool`. Copy the
-  whole folder to the shared drive; to update it later, copy the new `SteamStudyTool.exe` and
-  `_internal\` over the old ones.
-- `dist/` and `build/` are git-ignored. `build.bat --no-pause` (or `npm run build-desktop`) is for
-  terminal and CI use.
+## Getting the data file
 
-### LLM research (0.5)
-"Get more info from LLM" runs Claude Code headless (web search only, no shell or file access,
-spend-capped, $0.2-0.5 and about 1 minute per game in tests). It produces:
+The app starts from a single file that is **not in this repository**:
+`reference/steam_game_suggester.html` (about 11 MB). It is the original one-page Steam game
+suggester, with 15,521 games released 2022-2025 embedded, made with
+[Steam-Data-Analyzer](https://github.com/IRCSS/Steam-Data-Analyzer) from the public
+[Steam Games Dataset](https://www.kaggle.com/datasets/fronkongames/steam-games-dataset).
 
-| Row | How |
-|---|---|
-| People who worked on it | web research: range, best estimate, confidence, sources |
-| Development time | web research: same |
-| Cost at €50K per person-year | calculated: people × years × salary; also how long a team of 3 would need |
-| Break-even | calculated: cost ÷ (1 − 30% platform cut), in revenue and copies |
-| Why it did as well / why not better | from the 40+40 most helpful Steam reviews, with confidence |
+Copy it to `reference/steam_game_suggester.html` before building. The import checks its SHA-256
+and refuses any other file. Without it, `build.bat` and `npm run import-data` stop with a clear
+message, and the tests that need it are skipped.
 
-Salary, currency and exchange rate, team size, platform cut, model, spend cap and CLI path are
-all in Settings. Results are saved to `data\research\<appid>.json`, and the JPG export includes
-them.
+## Data and caveats
 
-### The three tabs (0.3)
-- **Suggest**: filters, random suggestions, game report (with when and where each number was
-  observed), Add to Studies, Export as JPG, and **Get more info from LLM**: a standardized,
-  cited research table, run with the Claude Code CLI installed on the PC (see below).
-- **Charts**: revenue distribution, games per year, price vs revenue (Studies highlighted; click a
-  dot to open the game), tags by median revenue, review count vs score, and the selected game's
-  review history. Scope: the qualified catalog by year, or the Suggest tab's filters. Every chart
-  has a table view.
-- **Data**: update the dataset from Steam, with an estimate of requests and time before you start:
-  - update existing games (default: qualified games, reviews and store info, skip if updated
-    within 7 days; choose years, scope and parts);
-  - add new games (AppIDs after the newest known, plus a quick re-check of recently listed games
-    that weren't released yet; **needs a free Steam Web API key**, set in Settings);
-  - deep check, about once a year (slow; finds old AppIDs released late and set-aside games
-    that took off later; same key);
-  - look up languages;
-  - update one AppID.
+- **The starting dataset** is the file above: games released 2022-2025. The Data tab adds newer
+  games and fresher numbers from Steam.
+- **Estimated revenue** = total reviews × 45 × listed price: a common rule of thumb, not sales
+  data. Ranks are within each release year of the local catalog.
+- **LLM research** comes from public sources and reviews. Small studios rarely publish team size
+  or budgets, so expect "Low"/"Medium" confidence and ranges. Check the linked sources before
+  relying on a number.
+- **Steam endpoints and SteamSpy** are used politely (rate-limited, user-started, resumable).
+  Respect their terms of use.
 
-  Jobs run in the background, can be stopped, and continue where they left off. Results are
-  shared through the data folder with every PC.
+More: [revenue model](docs/revenue-model.md) · [data dictionary](docs/data-dictionary.md) ·
+[architecture](docs/architecture.md) · [design decisions](docs/decisions/).
 
-### Features added in 0.2
-- **Must support English** filter. Languages come from a one-time, user-started lookup against the
-  Steam store (Settings -> Languages; ~35 requests/minute, resumable, shared by all PCs). Games not
-  yet checked are kept; only games known to lack English are excluded.
-- **Add to Studies** archives a game (one JSON file) and skips it in future suggestions (switch in
-  the sidebar). Studies are listed under the session history.
-- **Get more info from LLM** shows the research table. The LLM integration itself is not built yet.
-- **Export as JPG** saves a compact study sheet (artwork, metrics, pitch, tags, languages) to
-  `studiesJPG\<Game> (<AppID>).jpg`. Exporting again overwrites it.
-- **Settings** (gear icon): data and export folders, qualification floor, offline mode, language
-  lookup, request rate, and Steam/LLM keys for later (stored in plain text in settings.json).
+## For developers
 
-## Setup and run (development)
+React + TypeScript (Vite) UI, Python 3.12 + FastAPI backend, SQLite catalog, plus per-item JSON
+files for anything several PCs write (see [ADR 0003](docs/decisions/0003-shared-folder-storage.md)).
+The packaged app is PyInstaller + pywebview.
 
 ```bash
-npm run setup          # uv sync + npm ci (root and frontend) + Playwright Chromium
-npm run import-data    # parse reference HTML -> .local/steam_study.sqlite3 (offline, idempotent)
-npm run verify-data    # check counts, SHA-256 and a field-by-field round trip of all 15,521 records
-npm run dev            # API on http://127.0.0.1:8765 (docs at /docs) + UI on http://127.0.0.1:5173
+npm run setup         # install Python (uv) and npm dependencies + Playwright Chromium
+npm run import-data   # build .local/data/catalog.sqlite3 from the reference file (offline)
+npm run dev           # API http://127.0.0.1:8765 (docs: /docs) + UI http://127.0.0.1:5173
+npm run check         # ruff, pyright (strict), tsc, eslint, API contract, pytest, vitest
+npm run test-e2e      # Playwright, fully offline, incl. parity with the original HTML
 ```
 
-`npm run start` builds the UI and serves the app and API from one origin at http://127.0.0.1:8765.
-
-## Task contract
-
-| Command | What it does |
+| Path | Contents |
 |---|---|
-| `npm run setup` | Install pinned Python and npm dependencies and Playwright Chromium |
-| `npm run import-data` | Import the legacy HTML dataset into SQLite (`--db`, `--source` supported) |
-| `npm run verify-data` | Verify the imported DB against the audited legacy figures |
-| `npm run dev-api` / `dev-ui` / `dev` | Start the backend, the UI, or both |
-| `npm run check` | Ruff (lint and format), Pyright (strict), tsc, ESLint, API contract, pytest, Vitest |
-| `npm run test-backend` | Deterministic pytest suite (unit, integration, reference-file checks) |
-| `npm run test-frontend` | Vitest and React Testing Library |
-| `npm run test-e2e` | Playwright: isolated API and DB, parity against the original HTML, screenshots |
-| `npm run test-api-contract` | OpenAPI schema matches `frontend/openapi.json`; generated TS types are up to date |
-| `npm run gen-api` | Regenerate `frontend/openapi.json` and `frontend/src/api/schema.ts` |
-| `npm run test-live-smoke` | Opt-in live provider smoke tests (none exist before Phase 3) |
-| `npm run backup` | Online backup of the SQLite DB to `.local/backups/` |
+| `backend/app/domain/` | pure logic: filters, suggestions, ranks, charts, research economics |
+| `backend/app/api/`, `services.py` | HTTP routes and the service that ties storage to logic |
+| `backend/app/providers/`, `research/` | Steam, SteamSpy and Claude Code adapters |
+| `backend/app/storage/`, `jobs/` | shared-folder file stores; background data/research jobs |
+| `frontend/src/` | the React app (`pages/`: Suggest, Charts, Data) |
+| `desktop/`, `scripts/build_desktop.py`, `build.bat` | the Windows app and its build |
+| `docs/` | architecture, data dictionary, decisions (ADRs), phase reports |
 
-Playwright artifacts (traces, failure screenshots, `test-results/screenshots/*`) are written to
-`test-results/`. View the HTML report with `npx playwright show-report`.
+Tests never touch the network: Steam is faked (`backend/tests/fake_steam.py`) and Claude is
+stubbed. Tests that need the local data file skip without it; the end-to-end suite requires it.
+After changing the API, run `npm run gen-api`. Notes for coding agents are in
+[`CLAUDE.md`](CLAUDE.md); progress and decisions are in `docs/phase-reports/` and
+`docs/decisions/`.
 
-## Configuration
-
-Copy `.env.example` to `.env` to override the defaults: database path, log directory, and the
-qualification floor (`STEAM_STUDY_QUALIFICATION_MIN_REVENUE_USD`, default 100000). Logs are JSON
-lines in `.local/logs/`.
-
-## Data caveats
-
-Revenue figures are **estimates** (`total reviews x 45 x listed price`), not actual sales. The
-legacy dataset is an already filtered 2022-2025 sample with unknown capture dates. Ranks and
-percentiles only apply within that legacy population. See
-[`docs/revenue-model.md`](docs/revenue-model.md).
+Useful extras: `npm run verify-data` (checks the imported catalog against the original file),
+`npm run backup` (zips settings, studies, research and caches), `npm run start` (serves the built
+UI and API from one port).

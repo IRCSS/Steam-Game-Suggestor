@@ -172,6 +172,12 @@ def folder_size_mb(folder: Path) -> float:
 def main() -> None:
     if sys.platform != "win32":
         raise SystemExit("The desktop build targets Windows.")
+    if not REFERENCE_HTML.is_file():
+        raise SystemExit(
+            "ERROR: reference/steam_game_suggester.html is not in the repository (it is kept"
+            " local).\nCopy your steam_game_suggester.html there and run build.bat again."
+            " See README, 'Getting the data file'."
+        )
     build_seed_db()
     stage_frontend()
     built = run_pyinstaller()
