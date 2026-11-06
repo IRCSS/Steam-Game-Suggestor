@@ -186,6 +186,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Studies */
+        get: operations["list_studies_api_studies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studies/{appid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Add Study
+         * @description Archive a game as a study. It is skipped by future suggestions (when that switch is on).
+         */
+        put: operations["add_study_api_studies__appid__put"];
+        post?: never;
+        /** Remove Study */
+        delete: operations["remove_study_api_studies__appid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/languages/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Language Status */
+        get: operations["language_status_api_languages_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/languages/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Fetch */
+        post: operations["start_fetch_api_languages_fetch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/languages/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Fetch */
+        post: operations["cancel_fetch_api_languages_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/games/{appid}/artwork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Artwork
+         * @description Steam header artwork, proxied so the UI can draw it into the exported JPEG (browsers block
+         *     reading cross-origin images into a canvas). Kept in a small in-memory cache only.
+         */
+        get: operations["artwork_api_games__appid__artwork_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/exports/jpeg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export Jpeg */
+        post: operations["export_jpeg_api_exports_jpeg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/open-folder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open Folder
+         * @description Open one of the app's own folders in Explorer (Windows desktop convenience).
+         */
+        post: operations["open_folder_api_system_open_folder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_settings_get"];
+        /** Update Settings */
+        put: operations["update_settings_api_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -243,6 +408,8 @@ export interface components {
             freshness: string;
             /** Steam Url */
             steam_url: string;
+            languages: components["schemas"]["LanguageInfo"];
+            study: components["schemas"]["StudyState"];
         };
         /** GameSearchResponse */
         GameSearchResponse: {
@@ -280,11 +447,104 @@ export interface components {
             schema_version: number;
             /** Games */
             games: number;
+            /** Message */
+            message?: string | null;
         };
         /** HistoryResponse */
         HistoryResponse: {
             /** Items */
             items: components["schemas"]["GameSummary"][];
+        };
+        /** JpegExportRequest */
+        JpegExportRequest: {
+            /** Appid */
+            appid: number;
+            /** Image Base64 */
+            image_base64: string;
+        };
+        /** JpegExportResponse */
+        JpegExportResponse: {
+            /** Path */
+            path: string;
+            /** File Name */
+            file_name: string;
+            /** Folder */
+            folder: string;
+        };
+        /** LanguageFetchRequest */
+        LanguageFetchRequest: {
+            /**
+             * Scope
+             * @default qualified
+             * @enum {string}
+             */
+            scope: "qualified" | "all";
+        };
+        /** LanguageInfo */
+        LanguageInfo: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "unknown" | "ok" | "unavailable";
+            /** English */
+            english: boolean | null;
+            /** Languages */
+            languages: string[];
+            /** Fetched At */
+            fetched_at: string | null;
+        };
+        /** LanguageJobView */
+        LanguageJobView: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "running" | "completed" | "cancelled" | "failed";
+            /** Scope */
+            scope: string;
+            /** Total */
+            total: number;
+            /** Done */
+            done: number;
+            /** Found */
+            found: number;
+            /** Unavailable */
+            unavailable: number;
+            /** Errors */
+            errors: number;
+            /** Skipped */
+            skipped: number;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Message */
+            message: string;
+            /** Recent */
+            recent: string[];
+            /** Seconds Per Request */
+            seconds_per_request: number;
+        };
+        /** LanguageStatusResponse */
+        LanguageStatusResponse: {
+            /** Total Games */
+            total_games: number;
+            /** Qualified Games */
+            qualified_games: number;
+            /** Known */
+            known: number;
+            /** Known Qualified */
+            known_qualified: number;
+            /** English */
+            english: number;
+            /** No English */
+            no_english: number;
+            /** Unavailable */
+            unavailable: number;
+            /** Offline */
+            offline: boolean;
+            job: components["schemas"]["LanguageJobView"];
         };
         /** LegacyRank */
         LegacyRank: {
@@ -319,6 +579,14 @@ export interface components {
             /** Context */
             context: string;
         };
+        /** OpenFolderRequest */
+        OpenFolderRequest: {
+            /**
+             * Target
+             * @enum {string}
+             */
+            target: "data" | "export" | "app";
+        };
         /** Qualification */
         Qualification: {
             /** Qualified */
@@ -347,6 +615,77 @@ export interface components {
             observed_at: string | null;
             /** Source */
             source: string;
+        };
+        /** SettingsUpdate */
+        SettingsUpdate: {
+            /** Data Dir */
+            data_dir: string;
+            /** Export Dir */
+            export_dir: string;
+            /** Qualification Min Revenue Usd */
+            qualification_min_revenue_usd: number;
+            /** Offline Mode */
+            offline_mode: boolean;
+            /** Steam Store Requests Per Minute */
+            steam_store_requests_per_minute: number;
+            /**
+             * Llm Provider
+             * @enum {string}
+             */
+            llm_provider: "none" | "openai" | "anthropic";
+            /**
+             * Llm Model
+             * @default
+             */
+            llm_model: string;
+            /** Steam Api Key */
+            steam_api_key?: string | null;
+            /** Llm Api Key */
+            llm_api_key?: string | null;
+        };
+        /**
+         * SettingsView
+         * @description What the Settings dialog shows. Secrets are never returned - only whether they are set.
+         */
+        SettingsView: {
+            /** App Dir */
+            app_dir: string;
+            /** Settings File */
+            settings_file: string;
+            /** Data Dir */
+            data_dir: string;
+            /** Data Dir Resolved */
+            data_dir_resolved: string;
+            /** Export Dir */
+            export_dir: string;
+            /** Export Dir Resolved */
+            export_dir_resolved: string;
+            /** Qualification Min Revenue Usd */
+            qualification_min_revenue_usd: number;
+            /** Offline Mode */
+            offline_mode: boolean;
+            /** Steam Api Key Set */
+            steam_api_key_set: boolean;
+            /** Steam Store Requests Per Minute */
+            steam_store_requests_per_minute: number;
+            /**
+             * Llm Provider
+             * @enum {string}
+             */
+            llm_provider: "none" | "openai" | "anthropic";
+            /** Llm Model */
+            llm_model: string;
+            /** Llm Api Key Set */
+            llm_api_key_set: boolean;
+            /** Warning */
+            warning: string | null;
+        };
+        /** StudiesResponse */
+        StudiesResponse: {
+            /** Items */
+            items: components["schemas"]["StudyItem"][];
+            /** Folder */
+            folder: string;
         };
         /**
          * StudyFiltersModel
@@ -389,6 +728,36 @@ export interface components {
              * @default
              */
             exclude_tags: string;
+            /**
+             * Require English
+             * @description Exclude games known to have no English support
+             * @default false
+             */
+            require_english: boolean;
+        };
+        /** StudyItem */
+        StudyItem: {
+            /** Appid */
+            appid: number;
+            /** Name */
+            name: string;
+            /** Added At */
+            added_at: string;
+            /** Added By */
+            added_by: string;
+            /** Release Year */
+            release_year: number | null;
+            /** Estimated Revenue Usd */
+            estimated_revenue_usd: number | null;
+        };
+        /** StudyState */
+        StudyState: {
+            /** In Studies */
+            in_studies: boolean;
+            /** Added At */
+            added_at: string | null;
+            /** Added By */
+            added_by: string | null;
         };
         /** SuggestionQuery */
         SuggestionQuery: {
@@ -405,6 +774,12 @@ export interface components {
              * @default false
              */
             include_below_threshold: boolean;
+            /**
+             * Exclude Studies
+             * @description Skip games already in Studies
+             * @default true
+             */
+            exclude_studies: boolean;
         };
         /** SuggestionRequest */
         SuggestionRequest: {
@@ -421,6 +796,12 @@ export interface components {
              * @default false
              */
             include_below_threshold: boolean;
+            /**
+             * Exclude Studies
+             * @description Skip games already in Studies
+             * @default true
+             */
+            exclude_studies: boolean;
             /**
              * Seed
              * @description Deterministic RNG seed (tests/debugging)
@@ -751,6 +1132,307 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HistoryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_studies_api_studies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudiesResponse"];
+                };
+            };
+        };
+    };
+    add_study_api_studies__appid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_study_api_studies__appid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameReport"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    language_status_api_languages_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageStatusResponse"];
+                };
+            };
+        };
+    };
+    start_fetch_api_languages_fetch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageFetchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_fetch_api_languages_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageStatusResponse"];
+                };
+            };
+        };
+    };
+    artwork_api_games__appid__artwork_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_jpeg_api_exports_jpeg_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JpegExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JpegExportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_folder_api_system_open_folder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenFolderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_api_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsView"];
+                };
+            };
+        };
+    };
+    update_settings_api_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsView"];
                 };
             };
             /** @description Validation Error */

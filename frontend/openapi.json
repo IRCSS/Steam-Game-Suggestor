@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steam Study Tool API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "paths": {
     "/api/health": {
@@ -413,6 +413,365 @@
           }
         }
       }
+    },
+    "/api/studies": {
+      "get": {
+        "tags": [
+          "studies"
+        ],
+        "summary": "List Studies",
+        "operationId": "list_studies_api_studies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudiesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studies/{appid}": {
+      "put": {
+        "tags": [
+          "studies"
+        ],
+        "summary": "Add Study",
+        "description": "Archive a game as a study. It is skipped by future suggestions (when that switch is on).",
+        "operationId": "add_study_api_studies__appid__put",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "studies"
+        ],
+        "summary": "Remove Study",
+        "operationId": "remove_study_api_studies__appid__delete",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/languages/status": {
+      "get": {
+        "tags": [
+          "languages"
+        ],
+        "summary": "Language Status",
+        "operationId": "language_status_api_languages_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/languages/fetch": {
+      "post": {
+        "tags": [
+          "languages"
+        ],
+        "summary": "Start Fetch",
+        "operationId": "start_fetch_api_languages_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LanguageFetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/languages/cancel": {
+      "post": {
+        "tags": [
+          "languages"
+        ],
+        "summary": "Cancel Fetch",
+        "operationId": "cancel_fetch_api_languages_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{appid}/artwork": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Artwork",
+        "description": "Steam header artwork, proxied so the UI can draw it into the exported JPEG (browsers block\nreading cross-origin images into a canvas). Kept in a small in-memory cache only.",
+        "operationId": "artwork_api_games__appid__artwork_get",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exports/jpeg": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Jpeg",
+        "operationId": "export_jpeg_api_exports_jpeg_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JpegExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JpegExportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/open-folder": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Open Folder",
+        "description": "Open one of the app's own folders in Explorer (Windows desktop convenience).",
+        "operationId": "open_folder_api_system_open_folder_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get Settings",
+        "operationId": "get_settings_api_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Update Settings",
+        "operationId": "update_settings_api_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -557,6 +916,12 @@
           "steam_url": {
             "type": "string",
             "title": "Steam Url"
+          },
+          "languages": {
+            "$ref": "#/components/schemas/LanguageInfo"
+          },
+          "study": {
+            "$ref": "#/components/schemas/StudyState"
           }
         },
         "type": "object",
@@ -572,7 +937,9 @@
           "rank",
           "qualification",
           "freshness",
-          "steam_url"
+          "steam_url",
+          "languages",
+          "study"
         ],
         "title": "GameReport"
       },
@@ -659,6 +1026,17 @@
           "games": {
             "type": "integer",
             "title": "Games"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
           }
         },
         "type": "object",
@@ -685,6 +1063,262 @@
           "items"
         ],
         "title": "HistoryResponse"
+      },
+      "JpegExportRequest": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "image_base64": {
+            "type": "string",
+            "maxLength": 21000000,
+            "title": "Image Base64"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "image_base64"
+        ],
+        "title": "JpegExportRequest"
+      },
+      "JpegExportResponse": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "file_name",
+          "folder"
+        ],
+        "title": "JpegExportResponse"
+      },
+      "LanguageFetchRequest": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "qualified",
+              "all"
+            ],
+            "title": "Scope",
+            "default": "qualified"
+          }
+        },
+        "type": "object",
+        "title": "LanguageFetchRequest"
+      },
+      "LanguageInfo": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "ok",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "english": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "English"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "english",
+          "languages",
+          "fetched_at"
+        ],
+        "title": "LanguageInfo"
+      },
+      "LanguageJobView": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "completed",
+              "cancelled",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "found": {
+            "type": "integer",
+            "title": "Found"
+          },
+          "unavailable": {
+            "type": "integer",
+            "title": "Unavailable"
+          },
+          "errors": {
+            "type": "integer",
+            "title": "Errors"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "recent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recent"
+          },
+          "seconds_per_request": {
+            "type": "number",
+            "title": "Seconds Per Request"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "scope",
+          "total",
+          "done",
+          "found",
+          "unavailable",
+          "errors",
+          "skipped",
+          "started_at",
+          "finished_at",
+          "message",
+          "recent",
+          "seconds_per_request"
+        ],
+        "title": "LanguageJobView"
+      },
+      "LanguageStatusResponse": {
+        "properties": {
+          "total_games": {
+            "type": "integer",
+            "title": "Total Games"
+          },
+          "qualified_games": {
+            "type": "integer",
+            "title": "Qualified Games"
+          },
+          "known": {
+            "type": "integer",
+            "title": "Known"
+          },
+          "known_qualified": {
+            "type": "integer",
+            "title": "Known Qualified"
+          },
+          "english": {
+            "type": "integer",
+            "title": "English"
+          },
+          "no_english": {
+            "type": "integer",
+            "title": "No English"
+          },
+          "unavailable": {
+            "type": "integer",
+            "title": "Unavailable"
+          },
+          "offline": {
+            "type": "boolean",
+            "title": "Offline"
+          },
+          "job": {
+            "$ref": "#/components/schemas/LanguageJobView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_games",
+          "qualified_games",
+          "known",
+          "known_qualified",
+          "english",
+          "no_english",
+          "unavailable",
+          "offline",
+          "job"
+        ],
+        "title": "LanguageStatusResponse"
       },
       "LegacyRank": {
         "properties": {
@@ -779,6 +1413,24 @@
         ],
         "title": "Money"
       },
+      "OpenFolderRequest": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "data",
+              "export",
+              "app"
+            ],
+            "title": "Target"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "title": "OpenFolderRequest"
+      },
       "Qualification": {
         "properties": {
           "qualified": {
@@ -859,6 +1511,199 @@
           "source"
         ],
         "title": "Reviews"
+      },
+      "SettingsUpdate": {
+        "properties": {
+          "data_dir": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Data Dir"
+          },
+          "export_dir": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Export Dir"
+          },
+          "qualification_min_revenue_usd": {
+            "type": "integer",
+            "maximum": 10000000000.0,
+            "minimum": 0.0,
+            "title": "Qualification Min Revenue Usd"
+          },
+          "offline_mode": {
+            "type": "boolean",
+            "title": "Offline Mode"
+          },
+          "steam_store_requests_per_minute": {
+            "type": "integer",
+            "maximum": 120.0,
+            "minimum": 1.0,
+            "title": "Steam Store Requests Per Minute"
+          },
+          "llm_provider": {
+            "type": "string",
+            "enum": [
+              "none",
+              "openai",
+              "anthropic"
+            ],
+            "title": "Llm Provider"
+          },
+          "llm_model": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Llm Model",
+            "default": ""
+          },
+          "steam_api_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Api Key"
+          },
+          "llm_api_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Api Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data_dir",
+          "export_dir",
+          "qualification_min_revenue_usd",
+          "offline_mode",
+          "steam_store_requests_per_minute",
+          "llm_provider"
+        ],
+        "title": "SettingsUpdate"
+      },
+      "SettingsView": {
+        "properties": {
+          "app_dir": {
+            "type": "string",
+            "title": "App Dir"
+          },
+          "settings_file": {
+            "type": "string",
+            "title": "Settings File"
+          },
+          "data_dir": {
+            "type": "string",
+            "title": "Data Dir"
+          },
+          "data_dir_resolved": {
+            "type": "string",
+            "title": "Data Dir Resolved"
+          },
+          "export_dir": {
+            "type": "string",
+            "title": "Export Dir"
+          },
+          "export_dir_resolved": {
+            "type": "string",
+            "title": "Export Dir Resolved"
+          },
+          "qualification_min_revenue_usd": {
+            "type": "integer",
+            "title": "Qualification Min Revenue Usd"
+          },
+          "offline_mode": {
+            "type": "boolean",
+            "title": "Offline Mode"
+          },
+          "steam_api_key_set": {
+            "type": "boolean",
+            "title": "Steam Api Key Set"
+          },
+          "steam_store_requests_per_minute": {
+            "type": "integer",
+            "title": "Steam Store Requests Per Minute"
+          },
+          "llm_provider": {
+            "type": "string",
+            "enum": [
+              "none",
+              "openai",
+              "anthropic"
+            ],
+            "title": "Llm Provider"
+          },
+          "llm_model": {
+            "type": "string",
+            "title": "Llm Model"
+          },
+          "llm_api_key_set": {
+            "type": "boolean",
+            "title": "Llm Api Key Set"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_dir",
+          "settings_file",
+          "data_dir",
+          "data_dir_resolved",
+          "export_dir",
+          "export_dir_resolved",
+          "qualification_min_revenue_usd",
+          "offline_mode",
+          "steam_api_key_set",
+          "steam_store_requests_per_minute",
+          "llm_provider",
+          "llm_model",
+          "llm_api_key_set",
+          "warning"
+        ],
+        "title": "SettingsView",
+        "description": "What the Settings dialog shows. Secrets are never returned - only whether they are set."
+      },
+      "StudiesResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudyItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "folder"
+        ],
+        "title": "StudiesResponse"
       },
       "StudyFiltersModel": {
         "properties": {
@@ -1012,6 +1857,12 @@
             "maxLength": 2000,
             "title": "Exclude Tags",
             "default": ""
+          },
+          "require_english": {
+            "type": "boolean",
+            "title": "Require English",
+            "description": "Exclude games known to have no English support",
+            "default": false
           }
         },
         "type": "object",
@@ -1020,6 +1871,95 @@
         ],
         "title": "StudyFiltersModel",
         "description": "Legacy study filters. ``null`` numeric bound = field left empty (legacy fallback)."
+      },
+      "StudyItem": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "added_at": {
+            "type": "string",
+            "title": "Added At"
+          },
+          "added_by": {
+            "type": "string",
+            "title": "Added By"
+          },
+          "release_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Year"
+          },
+          "estimated_revenue_usd": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Revenue Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "name",
+          "added_at",
+          "added_by",
+          "release_year",
+          "estimated_revenue_usd"
+        ],
+        "title": "StudyItem"
+      },
+      "StudyState": {
+        "properties": {
+          "in_studies": {
+            "type": "boolean",
+            "title": "In Studies"
+          },
+          "added_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added At"
+          },
+          "added_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "in_studies",
+          "added_at",
+          "added_by"
+        ],
+        "title": "StudyState"
       },
       "SuggestionQuery": {
         "properties": {
@@ -1040,6 +1980,12 @@
             "type": "boolean",
             "title": "Include Below Threshold",
             "default": false
+          },
+          "exclude_studies": {
+            "type": "boolean",
+            "title": "Exclude Studies",
+            "description": "Skip games already in Studies",
+            "default": true
           }
         },
         "type": "object",
@@ -1068,6 +2014,12 @@
             "type": "boolean",
             "title": "Include Below Threshold",
             "default": false
+          },
+          "exclude_studies": {
+            "type": "boolean",
+            "title": "Exclude Studies",
+            "description": "Skip games already in Studies",
+            "default": true
           },
           "seed": {
             "anyOf": [

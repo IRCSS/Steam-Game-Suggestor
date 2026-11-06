@@ -23,6 +23,7 @@ def health(service: Service) -> HealthResponse:
         version=APP_VERSION,
         schema_version=service.schema_version(),
         games=games,
+        message=service.catalog_error,
     )
 
 

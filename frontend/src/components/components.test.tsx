@@ -5,6 +5,7 @@ import { type FilterForm, formFromDefaults } from "../lib/filters";
 import { META, VAMPIRE } from "../tests/fixtures";
 import { FilterSidebar } from "./FilterSidebar";
 import { GameCard } from "./GameCard";
+import { StudiesList } from "./StudiesList";
 import { HeroImage, PLACEHOLDER_IMAGE, marketingImageUrls } from "./HeroImage";
 import { HistoryList } from "./HistoryList";
 
@@ -16,6 +17,7 @@ function SidebarHarness({ onForm }: { onForm: (f: FilterForm) => void }) {
       tags={META.tags}
       form={form}
       thresholdUsd={100000}
+      languageNote="note"
       matchLabel="12 matches"
       canSuggest
       resetKey={0}
@@ -73,7 +75,7 @@ describe("FilterSidebar", () => {
 
 describe("GameCard", () => {
   it("renders metrics, labels and links", () => {
-    render(<GameCard game={VAMPIRE} onAnother={() => undefined} onCopyAppId={() => undefined} />);
+    render(<GameCard game={VAMPIRE} onAnother={() => undefined} onCopyAppId={() => undefined} onToggleStudy={() => undefined} onResearch={() => undefined} onExportJpeg={() => undefined} researchOpen={false} busy={null} />);
     expect(screen.getByRole("heading", { name: "Vampire Survivors" })).toBeInTheDocument();
     expect(document.querySelector("#gameRevenue")).toHaveTextContent("$42.1M");
     expect(document.querySelector("#gamePrice")).toHaveTextContent("$3.74");
@@ -98,7 +100,7 @@ describe("GameCard", () => {
       tags: [],
       qualification: { qualified: false, threshold_usd: 100000 },
     };
-    render(<GameCard game={game} onAnother={() => undefined} onCopyAppId={() => undefined} />);
+    render(<GameCard game={game} onAnother={() => undefined} onCopyAppId={() => undefined} onToggleStudy={() => undefined} onResearch={() => undefined} onExportJpeg={() => undefined} researchOpen={false} busy={null} />);
     expect(screen.getByTestId("below-floor")).toHaveTextContent("Below $100K catalog floor");
     expect(screen.getByText("No short store description is available.")).toBeInTheDocument();
     expect(screen.getByText("No tags available")).toBeInTheDocument();
@@ -106,7 +108,7 @@ describe("GameCard", () => {
 
   it("escapes store text instead of rendering HTML", () => {
     const game = { ...VAMPIRE, short_description: "<img src=x onerror=alert(1)>" };
-    render(<GameCard game={game} onAnother={() => undefined} onCopyAppId={() => undefined} />);
+    render(<GameCard game={game} onAnother={() => undefined} onCopyAppId={() => undefined} onToggleStudy={() => undefined} onResearch={() => undefined} onExportJpeg={() => undefined} researchOpen={false} busy={null} />);
     expect(document.querySelector("#gameDescription")?.textContent).toBe(
       "<img src=x onerror=alert(1)>",
     );
@@ -154,5 +156,75 @@ describe("HistoryList", () => {
     expect(screen.getByText("$150K")).toBeInTheDocument();
     await userEvent.click(screen.getByText("A"));
     expect(opened).toEqual([1]);
+  });
+});
+
+describe("study, research and export controls", () => {
+  function renderCard(overrides: Partial<Parameters<typeof GameCard>[0]> = {}) {
+    const calls: string[] = [];
+    render(
+      <GameCard
+        game={VAMPIRE}
+        onAnother={() => calls.push("another")}
+        onCopyAppId={() => calls.push("copy")}
+        onToggleStudy={() => calls.push("study")}
+        onResearch={() => calls.push("research")}
+        onExportJpeg={() => calls.push("export")}
+        researchOpen={false}
+        busy={null}
+        {...overrides}
+      />,
+    );
+    return calls;
+  }
+
+  it("shows the three new buttons and languages", async () => {
+    const calls = renderCard();
+    await userEvent.click(screen.getByRole("button", { name: /Add to Studies/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Get more info from LLM" }));
+    await userEvent.click(screen.getByRole("button", { name: "Export as JPG" }));
+    expect(calls).toEqual(["study", "research", "export"]);
+    expect(document.querySelector("#gameLanguages")).toHaveTextContent("English, French, Japanese");
+    expect(screen.getByText("English ✓")).toBeInTheDocument();
+    expect(screen.queryByTestId("research-panel")).toBeNull();
+  });
+
+  it("reflects study state, research panel and busy export", () => {
+    renderCard({
+      game: {
+        ...VAMPIRE,
+        study: { in_studies: true, added_at: "2026-11-06T10:00:00+00:00", added_by: "pc-1" },
+        languages: { status: "unknown", english: null, languages: [], fetched_at: null },
+      },
+      researchOpen: true,
+      busy: "export",
+    });
+    expect(screen.getByRole("button", { name: "✓ In Studies" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Added 2026-11-06 on pc-1")).toBeInTheDocument();
+    expect(screen.getByTestId("research-panel")).toHaveTextContent("No research yet");
+    expect(screen.getByRole("button", { name: "Exporting…" })).toBeDisabled();
+    expect(document.querySelector("#gameLanguages")).toHaveTextContent("Not checked yet");
+  });
+
+  it("lists studies and opens them", async () => {
+    const opened: number[] = [];
+    render(
+      <StudiesList
+        items={[
+          {
+            appid: 7,
+            name: "Saved Game",
+            added_at: "2026-11-06T10:00:00+00:00",
+            added_by: "pc-1",
+            release_year: 2023,
+            estimated_revenue_usd: 250000,
+          },
+        ]}
+        onOpen={(id) => opened.push(id)}
+      />,
+    );
+    expect(screen.getByText("1 saved")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Saved Game"));
+    expect(opened).toEqual([7]);
   });
 });

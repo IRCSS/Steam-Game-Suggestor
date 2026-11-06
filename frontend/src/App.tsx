@@ -28,7 +28,13 @@ export function App() {
   }, [attempt]);
 
   if (state.kind === "ready" && state.meta.dataset.total_games > 0) {
-    return <SuggestPage meta={state.meta} />;
+    const refreshMeta = () => {
+      api
+        .meta()
+        .then((meta) => setState({ kind: "ready", meta }))
+        .catch(() => undefined);
+    };
+    return <SuggestPage meta={state.meta} onMetaChanged={refreshMeta} />;
   }
 
   const needsImport = state.kind === "ready";

@@ -16,7 +16,7 @@ OUT = REPO_ROOT / "frontend" / "openapi.json"
 def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         settings = Settings(
-            db_path=Path(tmp) / "schema.sqlite3", log_dir=None, qualification_min_revenue_usd=0
+            app_dir=Path(tmp), data_dir=Path(tmp) / "data", export_dir=Path(tmp) / "x"
         )
         service = StudyService(settings)
         schema = create_app(settings, service).openapi()

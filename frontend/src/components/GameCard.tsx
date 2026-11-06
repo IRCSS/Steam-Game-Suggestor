@@ -6,6 +6,46 @@ interface Props {
   game: GameReport;
   onAnother: () => void;
   onCopyAppId: () => void;
+  onToggleStudy: () => void;
+  onResearch: () => void;
+  onExportJpeg: () => void;
+  researchOpen: boolean;
+  busy: "study" | "export" | null;
+}
+
+function languageSummary(game: GameReport): string {
+  const info = game.languages;
+  if (info.status === "unavailable") return "Not available from the Steam store.";
+  if (info.status !== "ok" || info.languages.length === 0)
+    return "Not checked yet - run the language lookup in Settings (gear icon).";
+  return info.languages.join(", ");
+}
+
+/** Placeholder for "Get more info from LLM": the research fields are defined later. */
+export function ResearchPanel() {
+  return (
+    <section className="research-panel" data-testid="research-panel">
+      <h3 className="section-title">LLM research</h3>
+      <table className="research-table">
+        <thead>
+          <tr>
+            <th>Topic</th>
+            <th>Finding</th>
+            <th>Confidence</th>
+            <th>Sources</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colSpan={4} className="research-empty">
+              No research yet. LLM research (team size, budget, development time, ...) is not
+              connected yet - this table will be filled once a provider is set up in Settings.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  );
 }
 
 export function StudyMetrics({ game }: { game: GameReport }) {
@@ -53,7 +93,9 @@ export function StudyMetrics({ game }: { game: GameReport }) {
 }
 
 /** Legacy case-study card (hero artwork, metrics, pitch, tags, rank card, actions). */
-export function GameCard({ game, onAnother, onCopyAppId }: Props) {
+export function GameCard(props: Props) {
+  const { game, onAnother, onCopyAppId, busy } = props;
+  const inStudies = game.study.in_studies;
   const rank = game.rank.rank;
   const total = game.rank.population_count;
   const topShare = total > 0 ? Math.min(100, (100 * rank) / total) : 0;
@@ -111,6 +153,18 @@ export function GameCard({ game, onAnother, onCopyAppId }: Props) {
                 )}
               </div>
             </section>
+            <section style={{ marginTop: 26 }}>
+              <h3 className="section-title">
+                Languages
+                {game.languages.english === true && <span className="lang-badge ok">English ✓</span>}
+                {game.languages.english === false && (
+                  <span className="lang-badge no">No English</span>
+                )}
+              </h3>
+              <p id="gameLanguages" className="description languages-text">
+                {languageSummary(game)}
+              </p>
+            </section>
           </div>
           <aside>
             <div className="rank-card">
@@ -149,6 +203,44 @@ export function GameCard({ game, onAnother, onCopyAppId }: Props) {
             Copy AppID
           </button>
         </div>
+        <div className="actions actions-study">
+          <button
+            id="studyButton"
+            className={inStudies ? "secondary-button study-active" : "primary-button study-button"}
+            type="button"
+            aria-pressed={inStudies}
+            disabled={busy === "study"}
+            onClick={props.onToggleStudy}
+            title={inStudies ? "Remove this game from Studies" : "Archive as a potential case study"}
+          >
+            {inStudies ? "✓ In Studies" : "＋ Add to Studies"}
+          </button>
+          <button
+            id="researchButton"
+            className="secondary-button"
+            type="button"
+            aria-expanded={props.researchOpen}
+            onClick={props.onResearch}
+          >
+            Get more info from LLM
+          </button>
+          <button
+            id="exportJpegButton"
+            className="secondary-button"
+            type="button"
+            disabled={busy === "export"}
+            onClick={props.onExportJpeg}
+          >
+            {busy === "export" ? "Exporting…" : "Export as JPG"}
+          </button>
+          {inStudies && game.study.added_at && (
+            <span className="study-meta">
+              Added {game.study.added_at.slice(0, 10)}
+              {game.study.added_by ? ` on ${game.study.added_by}` : ""}
+            </span>
+          )}
+        </div>
+        {props.researchOpen && <ResearchPanel />}
       </div>
     </article>
   );

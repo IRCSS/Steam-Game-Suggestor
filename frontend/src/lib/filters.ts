@@ -19,11 +19,19 @@ export interface FilterForm {
   excludeTags: string;
   avoidRepeats: boolean;
   includeBelowThreshold: boolean;
+  requireEnglish: boolean;
+  excludeStudies: boolean;
 }
 
 export type NumericField = Exclude<
   keyof FilterForm,
-  "years" | "includeTags" | "excludeTags" | "avoidRepeats" | "includeBelowThreshold"
+  | "years"
+  | "includeTags"
+  | "excludeTags"
+  | "avoidRepeats"
+  | "includeBelowThreshold"
+  | "requireEnglish"
+  | "excludeStudies"
 >;
 
 const text = (value: number | null | undefined): string =>
@@ -55,6 +63,8 @@ export function formFromDefaults(d: StudyFilters, avoidRepeats = true): FilterFo
     excludeTags: d.exclude_tags ?? "",
     avoidRepeats,
     includeBelowThreshold: false,
+    requireEnglish: d.require_english ?? false,
+    excludeStudies: true,
   };
 }
 
@@ -75,6 +85,7 @@ export function formToApi(f: FilterForm): StudyFilters {
     max_review_score: parseNumber(f.maxReviewScore),
     include_tags: f.includeTags,
     exclude_tags: f.excludeTags,
+    require_english: f.requireEnglish,
   };
 }
 

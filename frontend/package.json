@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
+    "html-to-image": "^1.11.13",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

@@ -20,7 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings()
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--source", type=Path, default=REFERENCE_HTML)
-    parser.add_argument("--db", type=Path, default=settings.db_path)
+    parser.add_argument("--db", type=Path, default=settings.catalog_path)
     parser.add_argument(
         "--allow-other-source",
         action="store_true",

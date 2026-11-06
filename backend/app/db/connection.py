@@ -72,6 +72,34 @@ def migrate(conn: sqlite3.Connection) -> int:
 
 
 def open_database(db_path: Path) -> sqlite3.Connection:
+    """Read-write connection with migrations applied. Used by the importer and build only."""
     conn = connect(db_path)
     migrate(conn)
+    return conn
+
+
+def latest_schema_version() -> int:
+    return max(version for version, _ in available_migrations())
+
+
+class CatalogError(RuntimeError):
+    """The catalog database is missing or was built for a different schema version."""
+
+
+def open_catalog(db_path: Path, immutable: bool = False) -> sqlite3.Connection:
+    """Read-only catalog connection. The running app never writes to the catalog, so it can be
+    shared on a network/cloud drive by several PCs. ``immutable`` additionally skips SQLite
+    file locking (packaged app), which shared drives often implement unreliably."""
+    if not db_path.is_file():
+        raise CatalogError(f"Game catalog not found: {db_path}")
+    uri = f"{db_path.resolve().as_uri()}?mode=ro" + ("&immutable=1" if immutable else "")
+    conn = sqlite3.connect(uri, uri=True, timeout=10, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    version = schema_version(conn)
+    if version != latest_schema_version():
+        conn.close()
+        raise CatalogError(
+            f"Game catalog {db_path} has schema version {version}, expected "
+            f"{latest_schema_version()}. Re-import it (or let the app replace it from the build)."
+        )
     return conn

@@ -28,7 +28,7 @@ EXPECTED = {
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", type=Path, default=load_settings().db_path)
+    parser.add_argument("--db", type=Path, default=load_settings().catalog_path)
     parser.add_argument("--source", type=Path, default=REFERENCE_HTML)
     args = parser.parse_args(argv)
 

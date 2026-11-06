@@ -15,7 +15,8 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import games, health, suggestions
+from app.api import exports, games, health, languages, studies, suggestions
+from app.api import settings as settings_api
 from app.config import APP_VERSION, REPO_ROOT, Settings, load_settings
 from app.logging_config import configure_logging, get_logger
 from app.services import StudyService
@@ -63,7 +64,9 @@ def create_app(settings: Settings | None = None, service: StudyService | None = 
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         app.state.service = service or StudyService(settings)
         yield
-        if service is None:
+        # Close whatever service is current (Settings may have swapped it), unless the caller
+        # passed in its own service and still owns it.
+        if app.state.service is not service:
             app.state.service.close()
 
     app = FastAPI(title="Steam Study Tool API", version=APP_VERSION, lifespan=lifespan)
@@ -97,6 +100,10 @@ def create_app(settings: Settings | None = None, service: StudyService | None = 
     app.include_router(health.router)
     app.include_router(games.router)
     app.include_router(suggestions.router)
+    app.include_router(studies.router)
+    app.include_router(languages.router)
+    app.include_router(exports.router)
+    app.include_router(settings_api.router)
 
     # Serve the built UI from the same origin when available (`npm run build` first).
     FRONTEND_DIST = _frontend_dist()

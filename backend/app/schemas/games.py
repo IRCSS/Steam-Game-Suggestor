@@ -7,9 +7,11 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from app.domain.filters import StudyFilters
+from app.domain.languages import LanguageRecord
 from app.domain.models import LegacyGame
 from app.domain.revenue import LEGACY_MODEL_ID, LEGACY_MODEL_LABEL, usd_to_minor_units
 from app.importer import LEGACY_PRICE_CONTEXT, LEGACY_SOURCE
+from app.storage.studies import Study
 
 SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
 SessionId = Annotated[str, Field(pattern=SESSION_ID_PATTERN)]
@@ -48,6 +50,30 @@ class Qualification(BaseModel):
     threshold_usd: int
 
 
+class LanguageInfo(BaseModel):
+    status: Literal["unknown", "ok", "unavailable"]
+    english: bool | None
+    languages: list[str]
+    fetched_at: str | None
+
+    @classmethod
+    def from_record(cls, record: LanguageRecord | None) -> LanguageInfo:
+        if record is None:
+            return cls(status="unknown", english=None, languages=[], fetched_at=None)
+        return cls(
+            status=record.status,
+            english=record.english,
+            languages=list(record.languages),
+            fetched_at=record.fetched_at,
+        )
+
+
+class StudyState(BaseModel):
+    in_studies: bool
+    added_at: str | None
+    added_by: str | None
+
+
 class GameReport(BaseModel):
     appid: int
     name: str
@@ -61,9 +87,17 @@ class GameReport(BaseModel):
     qualification: Qualification
     freshness: str
     steam_url: str
+    languages: LanguageInfo
+    study: StudyState
 
     @classmethod
-    def from_game(cls, game: LegacyGame, threshold_usd: int) -> GameReport:
+    def from_game(
+        cls,
+        game: LegacyGame,
+        threshold_usd: int,
+        language: LanguageRecord | None = None,
+        study: Study | None = None,
+    ) -> GameReport:
         return cls(
             appid=game.appid,
             name=game.name,
@@ -99,6 +133,12 @@ class GameReport(BaseModel):
             ),
             freshness="imported_legacy_unknown_age",
             steam_url=f"https://store.steampowered.com/app/{game.appid}",
+            languages=LanguageInfo.from_record(language),
+            study=StudyState(
+                in_studies=study is not None,
+                added_at=study.added_at if study else None,
+                added_by=study.added_by if study else None,
+            ),
         )
 
 
@@ -142,6 +182,9 @@ class StudyFiltersModel(BaseModel):
     max_review_score: float | None = None
     include_tags: str = Field(default="", max_length=2000)
     exclude_tags: str = Field(default="", max_length=2000)
+    require_english: bool = Field(
+        default=False, description="Exclude games known to have no English support"
+    )
 
     def to_domain(self) -> StudyFilters:
         return StudyFilters(
@@ -188,6 +231,7 @@ class SuggestionQuery(BaseModel):
     filters: StudyFiltersModel
     avoid_repeats: bool = True
     include_below_threshold: bool = False
+    exclude_studies: bool = Field(default=True, description="Skip games already in Studies")
 
 
 class SuggestionRequest(SuggestionQuery):
@@ -240,3 +284,4 @@ class HealthResponse(BaseModel):
     version: str
     schema_version: int
     games: int
+    message: str | None = None

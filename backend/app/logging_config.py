@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.storage.files import machine_id
+
 _RESERVED = set(vars(logging.makeLogRecord({})).keys()) | {"message", "asctime"}
 
 
@@ -40,7 +42,7 @@ def configure_logging(log_dir: Path | None, level: int = logging.INFO) -> None:
     if log_dir is not None:
         log_dir.mkdir(parents=True, exist_ok=True)
         file_handler = logging.handlers.RotatingFileHandler(
-            log_dir / "steam_study.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8"
+            log_dir / f"{machine_id()}.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8"
         )
         file_handler.setFormatter(formatter)
         root.addHandler(file_handler)

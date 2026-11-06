@@ -1,4 +1,4 @@
-# Data dictionary (schema version 1)
+# Data dictionary (catalog schema version 2)
 
 Source: `backend/app/db/migrations/001_initial.sql`.
 
@@ -34,9 +34,20 @@ index), so re-imports upsert instead of duplicating.
 ## `import_runs`
 Provenance of each import: source file name, SHA-256, record/inserted/updated counts, timestamp.
 
-## `view_sessions`, `view_events`
-Session-only view history (see `docs/architecture.md`). `source` is either `suggested` or
-`manual_lookup`.
+## Removed in migration 002: `view_sessions`, `view_events`
+Session view history is now kept in memory per app process (`app/domain/session.py`).
+
+## Files in the data folder (not in SQLite; see ADR 0003)
+| Path | Content |
+|---|---|
+| `studies/<appid>.json` | `schema_version`, `appid`, `name`, `status` ("study"), `added_at`, `added_by` (PC name), `updated_at`, `notes`, `research` (reserved for LLM results). Unknown keys preserved. |
+| `cache/languages-<pc>.jsonl` | one line per lookup: `appid`, `status` (`ok`/`unavailable`), `languages` (list), `fetched_at`, `source` |
+| `catalog.version` | version of the installed catalog (source SHA + schema) |
+| `logs/<pc>.log`, `logs/launcher-<pc>.log` | JSON logs |
+
+`settings.json` (next to the exe): `version`, `data_dir`, `export_dir`,
+`qualification_min_revenue_usd`, `offline_mode`, `steam.{api_key, store_requests_per_minute}`,
+`llm.{provider, model, api_key}`.
 
 ## Audited legacy figures (verified by `npm run verify-data` and tests)
 15,521 records and unique AppIDs. Years: 2022: 3,946; 2023: 4,244; 2024: 4,982; 2025: 2,349.

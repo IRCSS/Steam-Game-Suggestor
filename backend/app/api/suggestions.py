@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.deps import Service, SessionPath, require_game
+from app.api.deps import Service, SessionPath, report, require_game
 from app.schemas.games import (
     CountResponse,
-    GameReport,
     GameSummary,
     HistoryResponse,
     SuggestionQuery,
@@ -20,7 +19,12 @@ router = APIRouter(prefix="/api", tags=["suggestions"])
 @router.post("/suggestions/count")
 def count_suggestions(service: Service, body: SuggestionQuery) -> CountResponse:
     result = service.count(
-        body.session_id, body.filters.to_domain(), body.avoid_repeats, body.include_below_threshold
+        body.session_id,
+        body.filters.to_domain(),
+        body.avoid_repeats,
+        body.include_below_threshold,
+        require_english=body.filters.require_english,
+        exclude_studies=body.exclude_studies,
     )
     return CountResponse(
         count=result.count,
@@ -38,11 +42,12 @@ def create_suggestion(service: Service, body: SuggestionRequest) -> SuggestionRe
         body.avoid_repeats,
         body.include_below_threshold,
         body.seed,
+        require_english=body.filters.require_english,
+        exclude_studies=body.exclude_studies,
     )
-    threshold = service.settings.qualification_min_revenue_usd
     return SuggestionResponse(
         status="ok" if result.game else "no_matches",
-        game=GameReport.from_game(result.game, threshold) if result.game else None,
+        game=report(service, result.game) if result.game else None,
         repeat_history_reset=result.repeat_history_reset,
         candidate_count=result.candidate_count,
     )

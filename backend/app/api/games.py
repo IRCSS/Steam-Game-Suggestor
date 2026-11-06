@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.api.deps import Service, require_game
+from app.api.deps import Service, report, require_game
 from app.domain.lookup import AUTOCOMPLETE_LIMIT
 from app.schemas.games import GameReport, GameSearchResponse, GameSummary
 
@@ -29,10 +29,9 @@ def resolve_game(
     game = service.resolve(q)
     if game is None:
         raise HTTPException(status_code=404, detail="No matching game found.")
-    return GameReport.from_game(game, service.settings.qualification_min_revenue_usd)
+    return report(service, game)
 
 
 @router.get("/{appid}")
 def get_game(service: Service, appid: int) -> GameReport:
-    game = require_game(service, appid)
-    return GameReport.from_game(game, service.settings.qualification_min_revenue_usd)
+    return report(service, require_game(service, appid))

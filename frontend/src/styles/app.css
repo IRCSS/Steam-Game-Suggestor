@@ -42,3 +42,314 @@
 code {
   color: var(--accent);
 }
+
+/* --- Header: settings gear ------------------------------------------------------------- */
+
+.topbar-side {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.gear-button {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.gear-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- Game card additions --------------------------------------------------------------- */
+
+.lang-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0;
+  text-transform: none;
+  border-radius: 999px;
+}
+
+.lang-badge.ok {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.lang-badge.no {
+  color: var(--danger);
+  background: rgba(255, 133, 133, 0.12);
+}
+
+.languages-text {
+  font-size: 0.92rem;
+}
+
+.actions-study {
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+  align-items: center;
+}
+
+.study-active {
+  color: var(--green);
+  border-color: rgba(102, 212, 146, 0.5);
+}
+
+.study-meta {
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+.research-panel {
+  margin-top: 22px;
+}
+
+.research-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.research-table th,
+.research-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.research-table th {
+  color: var(--subtle);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.research-empty {
+  color: var(--muted);
+}
+
+/* --- Settings dialog ------------------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: start center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  background: rgba(3, 6, 11, 0.72);
+}
+
+.settings-dialog {
+  width: min(720px, 100%);
+  padding: 26px;
+}
+
+.settings-section {
+  padding: 18px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.settings-field {
+  display: block;
+  margin-top: 10px;
+}
+
+.settings-field input,
+.settings-field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-field select {
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--text);
+  background: #0d141f;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.settings-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.settings-help {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--subtle);
+  overflow-wrap: anywhere;
+}
+
+.settings-warning {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.settings-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.settings-actions {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.link-button {
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.progress {
+  height: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: #0d141f;
+  border-radius: 999px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-strong), var(--green));
+  transition: width 0.4s ease;
+}
+
+/* --- JPEG export sheet (rendered off-screen) -------------------------------------------- */
+
+.export-stage {
+  position: fixed;
+  top: 0;
+  left: -20000px;
+  pointer-events: none;
+}
+
+.export-card {
+  width: 1200px;
+  box-sizing: border-box;
+  padding: 36px;
+  color: var(--text);
+  background: radial-gradient(circle at top left, rgba(37, 169, 255, 0.12), transparent 40%), #080c13;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.export-top {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.export-art {
+  width: 460px;
+  height: 215px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #0d1420;
+}
+
+.export-title {
+  margin: 10px 0 12px;
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.export-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.export-url {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.export-metrics {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.export-metrics .metric-value {
+  font-size: 1.15rem;
+}
+
+.export-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 28px;
+  margin-top: 24px;
+}
+
+.export-body section:first-child {
+  grid-column: 1 / -1;
+}
+
+.export-small {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.export-footer {
+  margin-top: 26px;
+  padding-top: 14px;
+  font-size: 11px;
+  color: var(--subtle);
+  border-top: 1px solid var(--border-soft);
+}
+
+@media (max-width: 700px) {
+  .topbar-side {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* The badge may wrap so the gear button never pushes the page wider than the screen. */
+.topbar-side .dataset-badge {
+  min-width: 0;
+  white-space: normal;
+}
+
+@media (max-width: 1050px) {
+  .topbar-side .dataset-badge {
+    flex: 1 1 auto;
+  }
+
+  .topbar-side .dataset-badge-sub {
+    display: block;
+  }
+}

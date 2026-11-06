@@ -30,6 +30,7 @@ export const META: MetaResponse = {
     max_review_score: 100,
     include_tags: "",
     exclude_tags: "",
+    require_english: false,
   },
   default_avoid_repeats: true,
 };
@@ -58,4 +59,11 @@ export const VAMPIRE: GameReport = {
   qualification: { qualified: true, threshold_usd: 100000 },
   freshness: "imported_legacy_unknown_age",
   steam_url: "https://store.steampowered.com/app/1794680",
+  languages: {
+    status: "ok",
+    english: true,
+    languages: ["English", "French", "Japanese"],
+    fetched_at: "2026-11-06T00:00:00+00:00",
+  },
+  study: { in_studies: false, added_at: null, added_by: null },
 };

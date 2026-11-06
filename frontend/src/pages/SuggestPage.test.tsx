@@ -5,13 +5,47 @@ import { SuggestPage } from "./SuggestPage";
 
 type Handler = (url: string, init?: RequestInit) => unknown;
 
+export const LANGUAGE_STATUS = {
+  total_games: 15521,
+  qualified_games: 3704,
+  known: 100,
+  known_qualified: 100,
+  english: 90,
+  no_english: 10,
+  unavailable: 0,
+  offline: false,
+  job: {
+    state: "idle",
+    scope: "",
+    total: 0,
+    done: 0,
+    found: 0,
+    unavailable: 0,
+    errors: 0,
+    skipped: 0,
+    started_at: null,
+    finished_at: null,
+    message: "",
+    recent: [],
+    seconds_per_request: 1.7,
+  },
+};
+
+/** Endpoints every page load calls; answered here so tests only mock what they exercise. */
+function sideEndpoint(url: string): unknown {
+  if (url === "/api/studies") return { items: [], folder: "data/studies" };
+  if (url === "/api/languages/status") return LANGUAGE_STATUS;
+  return undefined;
+}
+
 function mockFetch(handler: Handler) {
   const calls: { url: string; body: unknown }[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-      const result = handler(url, init);
+      const side = sideEndpoint(url);
+      const result = side ?? handler(url, init);
       if (result instanceof Response) return result;
       return new Response(JSON.stringify(result), { status: 200 });
     }),
@@ -122,5 +156,78 @@ describe("SuggestPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Reset filters" }));
     expect(minRevenue).toHaveValue(150000);
     expect(screen.getByText("Filters reset.")).toBeInTheDocument();
+  });
+
+  it("adds the current game to Studies and refreshes the count", async () => {
+    let inStudies = false;
+    const calls = mockFetch((url, init) => {
+      if (url.endsWith("/count"))
+        return { count: inStudies ? 4 : 5, count_ignoring_history: 5, all_seen: false };
+      if (url.includes("/api/games/resolve")) return VAMPIRE;
+      if (url.includes("/views")) return { items: [summary] };
+      if (url.includes("/api/games?q=")) return { items: [summary] };
+      if (url === `/api/studies/${VAMPIRE.appid}` && init?.method === "PUT") {
+        inStudies = true;
+        return { ...VAMPIRE, study: { in_studies: true, added_at: "2026-11-06T10:00:00", added_by: "pc-1" } };
+      }
+      throw new Error(`unexpected ${url}`);
+    });
+    render(<SuggestPage meta={META} sessionId="test-session-6" />);
+    await userEvent.type(screen.getByLabelText("Game name or AppID"), "1794680{Enter}");
+    await userEvent.click(await screen.findByRole("button", { name: /Add to Studies/ }));
+    expect(
+      await screen.findByText("Added Vampire Survivors to Studies - it won't be suggested again."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "✓ In Studies" })).toBeInTheDocument();
+    expect(await screen.findByText("4 matches")).toBeInTheDocument();
+    const countBody = calls.filter((c) => c.url.endsWith("/count")).at(-1)?.body;
+    expect(countBody).toMatchObject({ exclude_studies: true, filters: { require_english: false } });
+  });
+
+  it("opens Settings from the gear icon and saves", async () => {
+    const settings = {
+      app_dir: "G:\\Tools\\SteamStudyTool",
+      settings_file: "G:\\Tools\\SteamStudyTool\\settings.json",
+      data_dir: "data",
+      data_dir_resolved: "G:\\Tools\\SteamStudyTool\\data",
+      export_dir: "studiesJPG",
+      export_dir_resolved: "G:\\Tools\\SteamStudyTool\\studiesJPG",
+      qualification_min_revenue_usd: 100000,
+      offline_mode: false,
+      steam_api_key_set: false,
+      steam_store_requests_per_minute: 35,
+      llm_provider: "none",
+      llm_model: "",
+      llm_api_key_set: false,
+      warning: null,
+    };
+    const calls = mockFetch((url, init) => {
+      if (url.endsWith("/count")) return { count: 5, count_ignoring_history: 5, all_seen: false };
+      if (url === "/api/settings" && init?.method === "PUT")
+        return { ...settings, qualification_min_revenue_usd: 120000 };
+      if (url === "/api/settings") return settings;
+      throw new Error(`unexpected ${url}`);
+    });
+    let metaReloads = 0;
+    render(
+      <SuggestPage meta={META} sessionId="test-session-7" onMetaChanged={() => (metaReloads += 1)} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(await screen.findByText("G:\\Tools\\SteamStudyTool\\data")).toBeInTheDocument();
+    expect(screen.getByText(/known for/)).toBeInTheDocument();
+    const floor = document.querySelector<HTMLInputElement>("#settingsFloor")!;
+    await userEvent.clear(floor);
+    await userEvent.type(floor, "120000");
+    await userEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    expect(await screen.findByText("Settings saved.")).toBeInTheDocument();
+    const put = calls.find((c) => c.url === "/api/settings" && c.body);
+    expect(put?.body).toMatchObject({
+      data_dir: "data",
+      export_dir: "studiesJPG",
+      qualification_min_revenue_usd: 120000,
+      steam_api_key: null,
+      llm_api_key: null,
+    });
+    expect(metaReloads).toBe(1);
   });
 });

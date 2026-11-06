@@ -10,6 +10,12 @@ export type SuggestionRequest = Schemas["SuggestionRequest"];
 export type SuggestionResponse = Schemas["SuggestionResponse"];
 export type CountResponse = Schemas["CountResponse"];
 export type HistoryResponse = Schemas["HistoryResponse"];
+export type SettingsView = Schemas["SettingsView"];
+export type SettingsUpdate = Schemas["SettingsUpdate"];
+export type StudiesResponse = Schemas["StudiesResponse"];
+export type StudyItem = Schemas["StudyItem"];
+export type LanguageStatus = Schemas["LanguageStatusResponse"];
+export type JpegExportResponse = Schemas["JpegExportResponse"];
 
 export class ApiError extends Error {
   constructor(
@@ -69,4 +75,30 @@ export const api = {
     request<HistoryResponse>(`/api/sessions/${sessionId}/views`, post({ appid })),
   clearHistory: (sessionId: string) =>
     request<HistoryResponse>(`/api/sessions/${sessionId}/clear`, post({})),
+
+  studies: () => request<StudiesResponse>("/api/studies"),
+  addStudy: (appid: number) => request<GameReport>(`/api/studies/${appid}`, { method: "PUT" }),
+  removeStudy: (appid: number) =>
+    request<GameReport>(`/api/studies/${appid}`, { method: "DELETE" }),
+
+  settings: () => request<SettingsView>("/api/settings"),
+  saveSettings: (body: SettingsUpdate) =>
+    request<SettingsView>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
+
+  languageStatus: () => request<LanguageStatus>("/api/languages/status"),
+  fetchLanguages: (scope: "qualified" | "all") =>
+    request<LanguageStatus>("/api/languages/fetch", post({ scope })),
+  cancelLanguages: () => request<LanguageStatus>("/api/languages/cancel", post({})),
+
+  artworkUrl: (appid: number) => `/api/games/${appid}/artwork`,
+  exportJpeg: (appid: number, imageBase64: string) =>
+    request<JpegExportResponse>("/api/exports/jpeg", post({ appid, image_base64: imageBase64 })),
+  openFolder: async (target: "data" | "export" | "app") => {
+    const response = await fetch("/api/system/open-folder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target }),
+    });
+    if (!response.ok) throw new ApiError(response.status, "Could not open the folder.");
+  },
 };

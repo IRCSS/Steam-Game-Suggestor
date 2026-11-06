@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import sqlite3
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import REFERENCE_HTML, Settings
+from app.config import CATALOG_FILE_NAME, REFERENCE_HTML, Settings
 from app.db.connection import open_database
 from app.importer import LegacyRecord, extract_records, import_legacy_html
 from app.main import create_app
@@ -18,10 +18,24 @@ SAMPLE_HTML = FIXTURES / "legacy_sample.html"
 LOCAL_ORIGIN = {"Origin": "http://127.0.0.1:5173"}
 
 
-def make_settings(tmp_path: Path, threshold: int = 100_000) -> Settings:
+def make_settings(
+    tmp_path: Path, threshold: int = 100_000, offline: bool = True, rpm: int = 120
+) -> Settings:
+    """Isolated app folder layout: <tmp>/settings.json, <tmp>/data/..., <tmp>/studiesJPG."""
     return Settings(
-        db_path=tmp_path / "test.sqlite3", log_dir=None, qualification_min_revenue_usd=threshold
+        app_dir=tmp_path,
+        data_dir=tmp_path / "data",
+        export_dir=tmp_path / "studiesJPG",
+        qualification_min_revenue_usd=threshold,
+        offline=offline,
+        steam_requests_per_minute=rpm,
     )
+
+
+def import_sample(settings: Settings) -> None:
+    conn = open_database(settings.catalog_path)
+    import_legacy_html(conn, SAMPLE_HTML)
+    conn.close()
 
 
 @pytest.fixture
@@ -30,7 +44,7 @@ def sample_records() -> list[LegacyRecord]:
 
 
 @pytest.fixture
-def sample_db(tmp_path: Path) -> Iterator[sqlite3.Connection]:
+def sample_db(tmp_path: Path) -> Iterator[object]:
     conn = open_database(tmp_path / "sample.sqlite3")
     import_legacy_html(conn, SAMPLE_HTML)
     yield conn
@@ -38,21 +52,49 @@ def sample_db(tmp_path: Path) -> Iterator[sqlite3.Connection]:
 
 
 @pytest.fixture
-def sample_client(tmp_path: Path) -> Iterator[TestClient]:
+def sample_settings(tmp_path: Path) -> Settings:
     settings = make_settings(tmp_path)
-    conn = open_database(settings.db_path)
-    import_legacy_html(conn, SAMPLE_HTML)
-    service = StudyService(settings, conn)
-    with TestClient(create_app(settings, service)) as client:
+    import_sample(settings)
+    return settings
+
+
+@pytest.fixture
+def sample_client(sample_settings: Settings) -> Iterator[TestClient]:
+    with TestClient(create_app(sample_settings)) as client:
         yield client
-    service.close()
+
+
+HttpHandler = Callable[[httpx.Request], httpx.Response]
+
+
+@pytest.fixture
+def online_client_factory(
+    tmp_path: Path,
+) -> Iterator[Callable[[HttpHandler], tuple[TestClient, StudyService]]]:
+    """App with a mocked Steam (httpx.MockTransport) - never touches the network."""
+    clients: list[TestClient] = []
+
+    def build(handler: HttpHandler) -> tuple[TestClient, StudyService]:
+        settings = make_settings(tmp_path, offline=False)
+        import_sample(settings)
+        service = StudyService(
+            settings, http_factory=lambda: httpx.Client(transport=httpx.MockTransport(handler))
+        )
+        client = TestClient(create_app(settings, service))
+        client.__enter__()
+        clients.append(client)
+        return client, service
+
+    yield build
+    for client in clients:
+        client.__exit__(None, None, None)
 
 
 @pytest.fixture(scope="session")
 def reference_db_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     if not REFERENCE_HTML.is_file():
         pytest.skip("reference/steam_game_suggester.html is missing")
-    path = tmp_path_factory.mktemp("ref") / "reference.sqlite3"
+    path = tmp_path_factory.mktemp("ref") / "data" / CATALOG_FILE_NAME
     conn = open_database(path)
     import_legacy_html(conn, REFERENCE_HTML)
     conn.close()
@@ -61,10 +103,9 @@ def reference_db_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture(scope="session")
 def reference_client(reference_db_path: Path) -> Iterator[TestClient]:
+    app_dir = reference_db_path.parent.parent
     settings = Settings(
-        db_path=reference_db_path, log_dir=None, qualification_min_revenue_usd=100_000
+        app_dir=app_dir, data_dir=app_dir / "data", export_dir=app_dir / "studiesJPG", offline=True
     )
-    service = StudyService(settings)
-    with TestClient(create_app(settings, service)) as client:
+    with TestClient(create_app(settings)) as client:
         yield client
-    service.close()

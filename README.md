@@ -31,11 +31,37 @@ dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the win
 - No terminal, server or browser needed: the exe starts the local server on a free localhost
   port and opens the app in its own window (Edge WebView2, preinstalled on Windows 10/11). If
   WebView2 is missing, it falls back to the default browser.
-- Your data lives in `%LOCALAPPDATA%\SteamStudyTool` (database, logs, `launcher.log`). It is
-  kept across rebuilds. Delete that folder to start fresh.
-- `dist/` and `build/` are git-ignored. The `dist\SteamStudyTool` folder can be copied or zipped
-  as a whole to another Windows PC.
-- `build.bat --no-pause` (or `npm run build-desktop`) is for terminal and CI use.
+- Everything lives **next to the exe**, so the folder can sit on a shared drive (e.g. G:) used
+  by several PCs at once:
+  ```
+  SteamStudyTool.exe
+  settings.json          created with defaults on first launch; edited via the gear icon
+  data\                  data folder (configurable in Settings)
+    catalog.sqlite3      game catalog (read-only while the app runs)
+    studies\<appid>.json one file per study ("Add to Studies")
+    cache\languages-<PC>.jsonl   Steam language lookups, one file per PC
+    logs\<PC>.log
+  studiesJPG\            "Export as JPG" output (configurable in Settings)
+  ```
+  Nothing is written to `%LOCALAPPDATA%`. (Builds before 0.2 used `%LOCALAPPDATA%\SteamStudyTool`;
+  that folder held no studies and can be deleted.)
+- Rebuilding keeps `settings.json`, `data\` and `studiesJPG\` in `dist\SteamStudyTool`. Copy the
+  whole folder to the shared drive; to update it later, copy the new `SteamStudyTool.exe` and
+  `_internal\` over the old ones.
+- `dist/` and `build/` are git-ignored. `build.bat --no-pause` (or `npm run build-desktop`) is for
+  terminal and CI use.
+
+### Features added in 0.2
+- **Must support English** filter. Languages come from a one-time, user-started lookup against the
+  Steam store (Settings -> Languages; ~35 requests/minute, resumable, shared by all PCs). Games not
+  yet checked are kept; only games known to lack English are excluded.
+- **Add to Studies** archives a game (one JSON file) and skips it in future suggestions (switch in
+  the sidebar). Studies are listed under the session history.
+- **Get more info from LLM** shows the research table. The LLM integration itself is not built yet.
+- **Export as JPG** saves a compact study sheet (artwork, metrics, pitch, tags, languages) to
+  `studiesJPG\<Game> (<AppID>).jpg`. Exporting again overwrites it.
+- **Settings** (gear icon): data and export folders, qualification floor, offline mode, language
+  lookup, request rate, and Steam/LLM keys for later (stored in plain text in settings.json).
 
 ## Setup and run (development)
 

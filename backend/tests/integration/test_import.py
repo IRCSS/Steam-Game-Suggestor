@@ -8,7 +8,14 @@ import pytest
 
 from app.config import REFERENCE_HTML, REFERENCE_SHA256
 from app.db import queries
-from app.db.connection import available_migrations, migrate, open_database, schema_version
+from app.db.connection import (
+    CatalogError,
+    available_migrations,
+    migrate,
+    open_catalog,
+    open_database,
+    schema_version,
+)
 from app.domain.models import normalize_tags
 from app.importer import (
     ImportFormatError,
@@ -18,7 +25,8 @@ from app.importer import (
     import_records,
     sha256_file,
 )
-from tests.conftest import SAMPLE_HTML
+from app.storage.studies import StudyStore
+from tests.conftest import SAMPLE_HTML, import_sample, make_settings
 
 
 def _html(payload: str) -> str:
@@ -78,19 +86,43 @@ def test_raw_tags_and_provenance_preserved(
     assert "tags_whitespace_trimmed" in json.loads(m["data_quality_flags"])
 
 
-def test_import_is_idempotent_and_preserves_session_state(sample_db: sqlite3.Connection) -> None:
-    appid = queries.load_legacy_games(sample_db)[0].appid
-    queries.record_view(sample_db, "session-abc", appid, "suggested")
+def test_import_is_idempotent_and_never_touches_study_files(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    import_sample(settings)
+    store = StudyStore(settings.studies_dir)
+    store.add(123, "A study")
+    study_file = settings.studies_dir / "123.json"
+    study_bytes = study_file.read_bytes()
+
+    conn = open_database(settings.catalog_path)
     before = {
-        t: sample_db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-        for t in ("games", "game_metrics", "view_events", "view_sessions")
+        t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        for t in ("games", "game_metrics")
     }
-    result = import_legacy_html(sample_db, SAMPLE_HTML)
-    after = {t: sample_db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in before}
+    result = import_legacy_html(conn, SAMPLE_HTML)
+    after = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in before}
     assert before == after
     assert result.inserted == 0 and result.updated == before["games"]
-    assert queries.history_appids(sample_db, "session-abc") == [appid]
-    assert sample_db.execute("SELECT COUNT(*) FROM import_runs").fetchone()[0] == 2
+    assert conn.execute("SELECT COUNT(*) FROM import_runs").fetchone()[0] == 2
+    conn.close()
+    assert study_file.read_bytes() == study_bytes  # user state lives outside the catalog
+
+
+def test_catalog_opens_read_only(tmp_path: Path) -> None:
+    settings = make_settings(tmp_path)
+    import_sample(settings)
+    conn = open_catalog(settings.catalog_path, immutable=True)
+    assert conn.execute("SELECT COUNT(*) FROM games").fetchone()[0] == 55
+    with pytest.raises(sqlite3.OperationalError):
+        conn.execute("DELETE FROM games")
+    conn.close()
+    with pytest.raises(CatalogError, match="not found"):
+        open_catalog(tmp_path / "missing.sqlite3")
+
+
+def test_view_tables_dropped_by_migration_002(sample_db: sqlite3.Connection) -> None:
+    tables = {r[0] for r in sample_db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "view_events" not in tables and "view_sessions" not in tables
 
 
 @pytest.mark.parametrize(

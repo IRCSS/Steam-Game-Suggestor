@@ -8,6 +8,7 @@ interface Props {
   tags: string[];
   form: FilterForm;
   thresholdUsd: number;
+  languageNote: ReactNode;
   matchLabel: string;
   canSuggest: boolean;
   resetKey: number;
@@ -15,6 +16,38 @@ interface Props {
   onChange: (form: FilterForm) => void;
   onSuggest: () => void;
   onReset: () => void;
+}
+
+interface ToggleProps {
+  id: string;
+  title: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  spaced?: boolean;
+  children: ReactNode;
+}
+
+/** Legacy switch row (label.switch > input + .switch-track). */
+function Toggle({ id, title, label, checked, onChange, spaced, children }: ToggleProps) {
+  return (
+    <div className={`toggle-row${spaced ? " toggle-row-spaced" : ""}`}>
+      <div className="toggle-copy">
+        <strong>{title}</strong>
+        <span>{children}</span>
+      </div>
+      <label className="switch">
+        <input
+          id={id}
+          type="checkbox"
+          aria-label={label}
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <span className="switch-track"></span>
+      </label>
+    </div>
+  );
 }
 
 interface PairProps {
@@ -153,41 +186,48 @@ export function FilterSidebar(props: Props) {
       </section>
 
       <section className="filter-group">
-        <div className="toggle-row">
-          <div className="toggle-copy">
-            <strong>Avoid repeats</strong>
-            <span>Skip games already shown this session.</span>
-          </div>
-          <label className="switch">
-            <input
-              id="avoidRepeats"
-              type="checkbox"
-              aria-label="Avoid repeats"
-              checked={form.avoidRepeats}
-              onChange={(e) => onChange({ ...form, avoidRepeats: e.target.checked })}
-            />
-            <span className="switch-track"></span>
-          </label>
-        </div>
-        <div className="toggle-row toggle-row-spaced">
-          <div className="toggle-copy">
-            <strong>Include below catalog floor</strong>
-            <span>
-              Also suggest games under the {formatCompactCurrency(props.thresholdUsd)} estimated
-              revenue floor.
-            </span>
-          </div>
-          <label className="switch">
-            <input
-              id="includeBelowThreshold"
-              type="checkbox"
-              aria-label="Include games below the catalog revenue floor"
-              checked={form.includeBelowThreshold}
-              onChange={(e) => onChange({ ...form, includeBelowThreshold: e.target.checked })}
-            />
-            <span className="switch-track"></span>
-          </label>
-        </div>
+        <Toggle
+          id="requireEnglish"
+          title="Must support English"
+          label="Only games that support English"
+          checked={form.requireEnglish}
+          onChange={(requireEnglish) => onChange({ ...form, requireEnglish })}
+        >
+          {props.languageNote}
+        </Toggle>
+      </section>
+
+      <section className="filter-group">
+        <Toggle
+          id="avoidRepeats"
+          title="Avoid repeats"
+          label="Avoid repeats"
+          checked={form.avoidRepeats}
+          onChange={(avoidRepeats) => onChange({ ...form, avoidRepeats })}
+        >
+          Skip games already shown this session.
+        </Toggle>
+        <Toggle
+          id="excludeStudies"
+          title="Skip games in Studies"
+          label="Skip games already added to Studies"
+          checked={form.excludeStudies}
+          onChange={(excludeStudies) => onChange({ ...form, excludeStudies })}
+          spaced
+        >
+          Games you added to Studies are never suggested again.
+        </Toggle>
+        <Toggle
+          id="includeBelowThreshold"
+          title="Include below catalog floor"
+          label="Include games below the catalog revenue floor"
+          checked={form.includeBelowThreshold}
+          onChange={(includeBelowThreshold) => onChange({ ...form, includeBelowThreshold })}
+          spaced
+        >
+          Also suggest games under the {formatCompactCurrency(props.thresholdUsd)} estimated
+          revenue floor.
+        </Toggle>
       </section>
 
       <div className="button-stack">
