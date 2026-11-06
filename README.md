@@ -111,3 +111,8 @@ After changing the API, run `npm run gen-api`. Notes for coding agents are in
 Useful extras: `npm run verify-data` (checks the imported catalog against the original file),
 `npm run backup` (zips settings, studies, research and caches), `npm run start` (serves the built
 UI and API from one port).
+
+## License
+
+[MIT](LICENSE). Steam data, artwork and store text belong to their owners. LLM research results
+are generated summaries of public sources.

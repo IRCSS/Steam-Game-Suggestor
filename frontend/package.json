@@ -39,5 +39,6 @@
     "test:watch": "vitest",
     "gen-api": "openapi-typescript openapi.json -o src/api/schema.ts",
     "gen-api:check": "openapi-typescript openapi.json -o .schema.check.ts && node -e \"const f=require('fs');const a=f.readFileSync('src/api/schema.ts','utf8'),b=f.readFileSync('.schema.check.ts','utf8');f.unlinkSync('.schema.check.ts');if(a!==b){console.error('src/api/schema.ts is stale: run npm run gen-api');process.exit(1)}console.log('API types up to date')\""
-  }
+  },
+  "license": "MIT"
 }
