@@ -1,0 +1,31 @@
+{
+  "name": "steam-study-tool",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^26.6.6"
+  },
+  "scripts": {
+    "setup": "uv sync && npm ci && npm --prefix frontend ci && npx playwright install chromium",
+    "import-data": "uv run python scripts/import_legacy_html.py",
+    "verify-data": "uv run python scripts/verify_legacy_import.py",
+    "dev-api": "uv run uvicorn app.main:app --host 127.0.0.1 --port 8765 --reload --reload-dir backend",
+    "dev-ui": "npm --prefix frontend run dev",
+    "dev": "node scripts/dev.mjs",
+    "start": "npm --prefix frontend run build && uv run uvicorn app.main:app --host 127.0.0.1 --port 8765",
+    "gen-api": "uv run python scripts/export_openapi.py && npm --prefix frontend run gen-api",
+    "lint-py": "uv run ruff check backend scripts && uv run ruff format --check backend scripts",
+    "typecheck-py": "uv run pyright",
+    "lint-ui": "npm --prefix frontend run lint",
+    "typecheck-ui": "npm --prefix frontend run typecheck",
+    "test-backend": "uv run pytest",
+    "test-frontend": "npm --prefix frontend test",
+    "test-api-contract": "uv run pytest -k openapi_contract && npm --prefix frontend run gen-api:check",
+    "test-e2e": "playwright test",
+    "test-live-smoke": "node -e \"console.log('No live providers exist yet (Phase 3+). Nothing to run.')\"",
+    "check": "npm run lint-py && npm run typecheck-py && npm run typecheck-ui && npm run lint-ui && npm run test-api-contract && npm run test-backend && npm run test-frontend",
+    "backup": "uv run python scripts/backup_db.py"
+  }
+}

@@ -1,0 +1,61 @@
+import type { GameReport, MetaResponse } from "../api/client";
+
+export const META: MetaResponse = {
+  dataset: {
+    total_games: 15521,
+    qualified_games: 3704,
+    qualification_threshold_usd: 100000,
+    year_counts: { "2022": 3946, "2023": 4244, "2024": 4982, "2025": 2349 },
+    source_sha256: "bdc25ab3",
+    imported_at: "2026-11-06T00:00:00+00:00",
+    scope_label: "Legacy imported dataset, 2022-2025 releases",
+    revenue_model: "legacy_reviews_x45_price",
+    revenue_model_label: "Estimated gross revenue (total reviews x 45 x listed price)",
+  },
+  years: [2022, 2023, 2024, 2025],
+  tags: ["2D", "Action", "Colony Sim", "Indie", "Roguelike", "Roguelike Deckbuilder"],
+  default_filters: {
+    years: [2022, 2023, 2024, 2025],
+    min_revenue: 150000,
+    max_revenue: 800000,
+    min_price: 0,
+    max_price: 200,
+    min_rank: 1,
+    max_rank: 4982,
+    min_percentile: 0,
+    max_percentile: 100,
+    min_reviews: 20,
+    max_reviews: null,
+    min_review_score: 50,
+    max_review_score: 100,
+    include_tags: "",
+    exclude_tags: "",
+  },
+  default_avoid_repeats: true,
+};
+
+export const VAMPIRE: GameReport = {
+  appid: 1794680,
+  name: "Vampire Survivors",
+  short_description: "Mow down thousands of night creatures.",
+  release_year: 2022,
+  tags: ["Action", "Indie", "Rogue-lite", "Pixel Graphics"],
+  price: { amount_minor: 374, currency_code: "USD", context: "legacy_price_context_unknown" },
+  reviews: { total: 250334, positive_percent: 98.46, observed_at: null, source: "legacy_import" },
+  estimated_revenue: {
+    amount_minor: 4213121200,
+    currency_code: "USD",
+    model: "legacy_reviews_x45_price",
+    label: "Estimated gross revenue",
+  },
+  rank: {
+    rank: 16,
+    population_count: 3946,
+    percentile: 99.62,
+    population: "legacy_dataset_qualifying_games_2022",
+    scope_label: "legacy dataset, 2022 releases",
+  },
+  qualification: { qualified: true, threshold_usd: 100000 },
+  freshness: "imported_legacy_unknown_age",
+  steam_url: "https://store.steampowered.com/app/1794680",
+};

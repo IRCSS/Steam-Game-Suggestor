@@ -1,0 +1,242 @@
+"""API response/request contracts for games, suggestions and sessions."""
+
+from __future__ import annotations
+
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, Field
+
+from app.domain.filters import StudyFilters
+from app.domain.models import LegacyGame
+from app.domain.revenue import LEGACY_MODEL_ID, LEGACY_MODEL_LABEL, usd_to_minor_units
+from app.importer import LEGACY_PRICE_CONTEXT, LEGACY_SOURCE
+
+SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
+SessionId = Annotated[str, Field(pattern=SESSION_ID_PATTERN)]
+
+
+class Money(BaseModel):
+    amount_minor: int
+    currency_code: str
+    context: str
+
+
+class Reviews(BaseModel):
+    total: int
+    positive_percent: float
+    observed_at: str | None
+    source: str
+
+
+class RevenueEstimate(BaseModel):
+    amount_minor: int
+    currency_code: str
+    model: str
+    label: str
+
+
+class LegacyRank(BaseModel):
+    rank: int
+    population_count: int
+    percentile: float
+    population: str
+    scope_label: str
+
+
+class Qualification(BaseModel):
+    qualified: bool
+    threshold_usd: int
+
+
+class GameReport(BaseModel):
+    appid: int
+    name: str
+    short_description: str
+    release_year: int
+    tags: list[str]
+    price: Money
+    reviews: Reviews
+    estimated_revenue: RevenueEstimate
+    rank: LegacyRank
+    qualification: Qualification
+    freshness: str
+    steam_url: str
+
+    @classmethod
+    def from_game(cls, game: LegacyGame, threshold_usd: int) -> GameReport:
+        return cls(
+            appid=game.appid,
+            name=game.name,
+            short_description=game.short_description,
+            release_year=game.release_year,
+            tags=list(game.tags),
+            price=Money(
+                amount_minor=usd_to_minor_units(game.price),
+                currency_code="USD",
+                context=LEGACY_PRICE_CONTEXT,
+            ),
+            reviews=Reviews(
+                total=game.total_reviews,
+                positive_percent=game.review_score,
+                observed_at=None,
+                source=LEGACY_SOURCE,
+            ),
+            estimated_revenue=RevenueEstimate(
+                amount_minor=game.estimated_revenue * 100,
+                currency_code="USD",
+                model=LEGACY_MODEL_ID,
+                label=LEGACY_MODEL_LABEL,
+            ),
+            rank=LegacyRank(
+                rank=game.revenue_rank_in_year,
+                population_count=game.qualifying_games_in_year,
+                percentile=game.revenue_percentile_in_year,
+                population=game.legacy_population,
+                scope_label=f"legacy dataset, {game.release_year} releases",
+            ),
+            qualification=Qualification(
+                qualified=game.estimated_revenue >= threshold_usd, threshold_usd=threshold_usd
+            ),
+            freshness="imported_legacy_unknown_age",
+            steam_url=f"https://store.steampowered.com/app/{game.appid}",
+        )
+
+
+class GameSummary(BaseModel):
+    appid: int
+    name: str
+    release_year: int
+    estimated_revenue_usd: int
+    legacy_rank_in_year: int
+
+    @classmethod
+    def from_game(cls, game: LegacyGame) -> GameSummary:
+        return cls(
+            appid=game.appid,
+            name=game.name,
+            release_year=game.release_year,
+            estimated_revenue_usd=game.estimated_revenue,
+            legacy_rank_in_year=game.revenue_rank_in_year,
+        )
+
+
+class GameSearchResponse(BaseModel):
+    items: list[GameSummary]
+
+
+class StudyFiltersModel(BaseModel):
+    """Legacy study filters. ``null`` numeric bound = field left empty (legacy fallback)."""
+
+    years: list[int]
+    min_revenue: float | None = None
+    max_revenue: float | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+    min_rank: float | None = None
+    max_rank: float | None = None
+    min_percentile: float | None = None
+    max_percentile: float | None = None
+    min_reviews: float | None = None
+    max_reviews: float | None = None
+    min_review_score: float | None = None
+    max_review_score: float | None = None
+    include_tags: str = Field(default="", max_length=2000)
+    exclude_tags: str = Field(default="", max_length=2000)
+
+    def to_domain(self) -> StudyFilters:
+        return StudyFilters(
+            years=frozenset(self.years),
+            min_revenue=self.min_revenue,
+            max_revenue=self.max_revenue,
+            min_price=self.min_price,
+            max_price=self.max_price,
+            min_rank=self.min_rank,
+            max_rank=self.max_rank,
+            min_percentile=self.min_percentile,
+            max_percentile=self.max_percentile,
+            min_reviews=self.min_reviews,
+            max_reviews=self.max_reviews,
+            min_review_score=self.min_review_score,
+            max_review_score=self.max_review_score,
+            include_tags=self.include_tags,
+            exclude_tags=self.exclude_tags,
+        )
+
+    @classmethod
+    def from_domain(cls, f: StudyFilters) -> StudyFiltersModel:
+        return cls(
+            years=sorted(f.years),
+            min_revenue=f.min_revenue,
+            max_revenue=f.max_revenue,
+            min_price=f.min_price,
+            max_price=f.max_price,
+            min_rank=f.min_rank,
+            max_rank=f.max_rank,
+            min_percentile=f.min_percentile,
+            max_percentile=f.max_percentile,
+            min_reviews=f.min_reviews,
+            max_reviews=f.max_reviews,
+            min_review_score=f.min_review_score,
+            max_review_score=f.max_review_score,
+            include_tags=f.include_tags,
+            exclude_tags=f.exclude_tags,
+        )
+
+
+class SuggestionQuery(BaseModel):
+    session_id: SessionId
+    filters: StudyFiltersModel
+    avoid_repeats: bool = True
+    include_below_threshold: bool = False
+
+
+class SuggestionRequest(SuggestionQuery):
+    seed: int | None = Field(default=None, description="Deterministic RNG seed (tests/debugging)")
+
+
+class SuggestionResponse(BaseModel):
+    status: Literal["ok", "no_matches"]
+    game: GameReport | None
+    repeat_history_reset: bool
+    candidate_count: int
+
+
+class CountResponse(BaseModel):
+    count: int
+    count_ignoring_history: int
+    all_seen: bool
+
+
+class ViewRequest(BaseModel):
+    appid: int
+
+
+class HistoryResponse(BaseModel):
+    items: list[GameSummary]
+
+
+class DatasetInfo(BaseModel):
+    total_games: int
+    qualified_games: int
+    qualification_threshold_usd: int
+    year_counts: dict[str, int]
+    source_sha256: str | None
+    imported_at: str | None
+    scope_label: str
+    revenue_model: str
+    revenue_model_label: str
+
+
+class MetaResponse(BaseModel):
+    dataset: DatasetInfo
+    years: list[int]
+    tags: list[str]
+    default_filters: StudyFiltersModel
+    default_avoid_repeats: bool
+
+
+class HealthResponse(BaseModel):
+    status: Literal["ok", "needs_import"]
+    version: str
+    schema_version: int
+    games: int

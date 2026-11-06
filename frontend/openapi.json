@@ -1,0 +1,1185 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Steam Study Tool API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Meta",
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games": {
+      "get": {
+        "tags": [
+          "games"
+        ],
+        "summary": "Search Games",
+        "description": "Name/AppID search (legacy autocomplete). Ignores study filters and qualification.",
+        "operationId": "search_games_api_games_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 12,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/resolve": {
+      "get": {
+        "tags": [
+          "games"
+        ],
+        "summary": "Resolve Game",
+        "description": "Legacy 'Load game report': exact AppID, exact name, then best name match.",
+        "operationId": "resolve_game_api_games_resolve_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{appid}": {
+      "get": {
+        "tags": [
+          "games"
+        ],
+        "summary": "Get Game",
+        "operationId": "get_game_api_games__appid__get",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/suggestions/count": {
+      "post": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Count Suggestions",
+        "operationId": "count_suggestions_api_suggestions_count_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/suggestions": {
+      "post": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Create Suggestion",
+        "description": "Uniformly pick one matching game and record it as shown in this session.",
+        "operationId": "create_suggestion_api_suggestions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/history": {
+      "get": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Get History",
+        "operationId": "get_history_api_sessions__session_id__history_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{8,64}$",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/views": {
+      "post": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Record View",
+        "description": "Record a manual lookup (shown in history and counted as seen, as in the legacy app).",
+        "operationId": "record_view_api_sessions__session_id__views_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{8,64}$",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{session_id}/clear": {
+      "post": {
+        "tags": [
+          "suggestions"
+        ],
+        "summary": "Clear History",
+        "operationId": "clear_history_api_sessions__session_id__clear_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{8,64}$",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CountResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "count_ignoring_history": {
+            "type": "integer",
+            "title": "Count Ignoring History"
+          },
+          "all_seen": {
+            "type": "boolean",
+            "title": "All Seen"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "count_ignoring_history",
+          "all_seen"
+        ],
+        "title": "CountResponse"
+      },
+      "DatasetInfo": {
+        "properties": {
+          "total_games": {
+            "type": "integer",
+            "title": "Total Games"
+          },
+          "qualified_games": {
+            "type": "integer",
+            "title": "Qualified Games"
+          },
+          "qualification_threshold_usd": {
+            "type": "integer",
+            "title": "Qualification Threshold Usd"
+          },
+          "year_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Year Counts"
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sha256"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "scope_label": {
+            "type": "string",
+            "title": "Scope Label"
+          },
+          "revenue_model": {
+            "type": "string",
+            "title": "Revenue Model"
+          },
+          "revenue_model_label": {
+            "type": "string",
+            "title": "Revenue Model Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_games",
+          "qualified_games",
+          "qualification_threshold_usd",
+          "year_counts",
+          "source_sha256",
+          "imported_at",
+          "scope_label",
+          "revenue_model",
+          "revenue_model_label"
+        ],
+        "title": "DatasetInfo"
+      },
+      "GameReport": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "short_description": {
+            "type": "string",
+            "title": "Short Description"
+          },
+          "release_year": {
+            "type": "integer",
+            "title": "Release Year"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "price": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "reviews": {
+            "$ref": "#/components/schemas/Reviews"
+          },
+          "estimated_revenue": {
+            "$ref": "#/components/schemas/RevenueEstimate"
+          },
+          "rank": {
+            "$ref": "#/components/schemas/LegacyRank"
+          },
+          "qualification": {
+            "$ref": "#/components/schemas/Qualification"
+          },
+          "freshness": {
+            "type": "string",
+            "title": "Freshness"
+          },
+          "steam_url": {
+            "type": "string",
+            "title": "Steam Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "name",
+          "short_description",
+          "release_year",
+          "tags",
+          "price",
+          "reviews",
+          "estimated_revenue",
+          "rank",
+          "qualification",
+          "freshness",
+          "steam_url"
+        ],
+        "title": "GameReport"
+      },
+      "GameSearchResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GameSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "GameSearchResponse"
+      },
+      "GameSummary": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "release_year": {
+            "type": "integer",
+            "title": "Release Year"
+          },
+          "estimated_revenue_usd": {
+            "type": "integer",
+            "title": "Estimated Revenue Usd"
+          },
+          "legacy_rank_in_year": {
+            "type": "integer",
+            "title": "Legacy Rank In Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "name",
+          "release_year",
+          "estimated_revenue_usd",
+          "legacy_rank_in_year"
+        ],
+        "title": "GameSummary"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "needs_import"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "schema_version": {
+            "type": "integer",
+            "title": "Schema Version"
+          },
+          "games": {
+            "type": "integer",
+            "title": "Games"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "schema_version",
+          "games"
+        ],
+        "title": "HealthResponse"
+      },
+      "HistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GameSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "HistoryResponse"
+      },
+      "LegacyRank": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "population_count": {
+            "type": "integer",
+            "title": "Population Count"
+          },
+          "percentile": {
+            "type": "number",
+            "title": "Percentile"
+          },
+          "population": {
+            "type": "string",
+            "title": "Population"
+          },
+          "scope_label": {
+            "type": "string",
+            "title": "Scope Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "population_count",
+          "percentile",
+          "population",
+          "scope_label"
+        ],
+        "title": "LegacyRank"
+      },
+      "MetaResponse": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetInfo"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "default_filters": {
+            "$ref": "#/components/schemas/StudyFiltersModel"
+          },
+          "default_avoid_repeats": {
+            "type": "boolean",
+            "title": "Default Avoid Repeats"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset",
+          "years",
+          "tags",
+          "default_filters",
+          "default_avoid_repeats"
+        ],
+        "title": "MetaResponse"
+      },
+      "Money": {
+        "properties": {
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount_minor",
+          "currency_code",
+          "context"
+        ],
+        "title": "Money"
+      },
+      "Qualification": {
+        "properties": {
+          "qualified": {
+            "type": "boolean",
+            "title": "Qualified"
+          },
+          "threshold_usd": {
+            "type": "integer",
+            "title": "Threshold Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "qualified",
+          "threshold_usd"
+        ],
+        "title": "Qualification"
+      },
+      "RevenueEstimate": {
+        "properties": {
+          "amount_minor": {
+            "type": "integer",
+            "title": "Amount Minor"
+          },
+          "currency_code": {
+            "type": "string",
+            "title": "Currency Code"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "amount_minor",
+          "currency_code",
+          "model",
+          "label"
+        ],
+        "title": "RevenueEstimate"
+      },
+      "Reviews": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "positive_percent": {
+            "type": "number",
+            "title": "Positive Percent"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "positive_percent",
+          "observed_at",
+          "source"
+        ],
+        "title": "Reviews"
+      },
+      "StudyFiltersModel": {
+        "properties": {
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "min_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Revenue"
+          },
+          "max_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Revenue"
+          },
+          "min_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Price"
+          },
+          "max_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Price"
+          },
+          "min_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Rank"
+          },
+          "max_rank": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Rank"
+          },
+          "min_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Percentile"
+          },
+          "max_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Percentile"
+          },
+          "min_reviews": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Reviews"
+          },
+          "max_reviews": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Reviews"
+          },
+          "min_review_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Review Score"
+          },
+          "max_review_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Review Score"
+          },
+          "include_tags": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Include Tags",
+            "default": ""
+          },
+          "exclude_tags": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Exclude Tags",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "years"
+        ],
+        "title": "StudyFiltersModel",
+        "description": "Legacy study filters. ``null`` numeric bound = field left empty (legacy fallback)."
+      },
+      "SuggestionQuery": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$",
+            "title": "Session Id"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/StudyFiltersModel"
+          },
+          "avoid_repeats": {
+            "type": "boolean",
+            "title": "Avoid Repeats",
+            "default": true
+          },
+          "include_below_threshold": {
+            "type": "boolean",
+            "title": "Include Below Threshold",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "filters"
+        ],
+        "title": "SuggestionQuery"
+      },
+      "SuggestionRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,64}$",
+            "title": "Session Id"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/StudyFiltersModel"
+          },
+          "avoid_repeats": {
+            "type": "boolean",
+            "title": "Avoid Repeats",
+            "default": true
+          },
+          "include_below_threshold": {
+            "type": "boolean",
+            "title": "Include Below Threshold",
+            "default": false
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Deterministic RNG seed (tests/debugging)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "filters"
+        ],
+        "title": "SuggestionRequest"
+      },
+      "SuggestionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "no_matches"
+            ],
+            "title": "Status"
+          },
+          "game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GameReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repeat_history_reset": {
+            "type": "boolean",
+            "title": "Repeat History Reset"
+          },
+          "candidate_count": {
+            "type": "integer",
+            "title": "Candidate Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "game",
+          "repeat_history_reset",
+          "candidate_count"
+        ],
+        "title": "SuggestionResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ViewRequest": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid"
+        ],
+        "title": "ViewRequest"
+      }
+    }
+  }
+}
