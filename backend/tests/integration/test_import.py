@@ -17,6 +17,8 @@ from app.db.connection import (
     schema_version,
 )
 from app.domain.models import normalize_tags
+from app.domain.observations import build_catalog
+from app.domain.ranks import compute_ranks
 from app.importer import (
     ImportFormatError,
     LegacyRecord,
@@ -191,6 +193,15 @@ def test_reference_import_matches_audit(reference_db_path: Path) -> None:
     assert sum(g.price == 0 for g in games) == 1_004
     assert len({t for g in games for t in g.tags}) == 443
     assert [g.source_index for g in games] == list(range(15_521))
+    # Recomputing yearly ranks over the untouched catalog reproduces every legacy value exactly.
+    ranked = compute_ranks(games)
+    assert all(
+        (g.revenue_rank_in_year, g.qualifying_games_in_year, g.revenue_percentile_in_year)
+        == (g.legacy_rank_in_year, g.legacy_qualifying_games_in_year,
+            g.legacy_revenue_percentile_in_year)
+        for g in ranked
+    )  # fmt: skip
+    assert build_catalog(games, {}, {}, {}) == ranked
     vs = next(g for g in games if g.appid == 1794680)
     assert (vs.name, vs.price, vs.total_reviews, vs.estimated_revenue) == (
         "Vampire Survivors",

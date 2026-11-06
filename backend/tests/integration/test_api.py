@@ -41,7 +41,17 @@ def test_game_report_shape_and_404(sample_client: TestClient) -> None:
     assert report["reviews"]["observed_at"] is None
     assert report["estimated_revenue"]["model"] == "legacy_reviews_x45_price"
     assert report["estimated_revenue"]["amount_minor"] == item["estimated_revenue_usd"] * 100
-    assert report["rank"]["population"].startswith("legacy_dataset_qualifying_games_")
+    assert report["rank"]["population"].startswith("local_catalog_games_")
+    # The 55-game fixture is a subset, so ranks recomputed within it differ from the legacy
+    # ones - and the label must then say so. (Full catalog: identical, see reference test.)
+    assert report["rank"]["legacy_rank"] is not None
+    expected = (
+        "legacy dataset"
+        if report["rank"]["rank"] == report["rank"]["legacy_rank"]
+        else "local catalog"
+    )
+    assert report["rank"]["scope_label"].startswith(expected)
+    assert report["provenance"]["data_source"] == "legacy_import"
     assert report["steam_url"] == f"https://store.steampowered.com/app/{item['appid']}"
     assert sample_client.get("/api/games/1").status_code == 404
 

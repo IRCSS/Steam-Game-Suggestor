@@ -6,23 +6,23 @@ import math
 import re
 from collections.abc import Mapping, Sequence
 
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 AUTOCOMPLETE_LIMIT = 12
 _DIGITS = re.compile(r"^\d+$")
 
 
-def _rank_key(game: LegacyGame) -> float:
+def _rank_key(game: Game) -> float:
     # Legacy: Number(rank || Infinity)
     return game.revenue_rank_in_year or math.inf
 
 
 def search_games(
-    games: Sequence[LegacyGame],
-    by_appid: Mapping[int, LegacyGame],
+    games: Sequence[Game],
+    by_appid: Mapping[int, Game],
     query: str | None,
     limit: int = AUTOCOMPLETE_LIMIT,
-) -> list[LegacyGame]:
+) -> list[Game]:
     """Exact numeric AppID wins outright; otherwise case-insensitive name substring matches,
     name-prefix matches first, then best legacy yearly rank. Stable w.r.t. source order."""
     cleaned = str(query or "").strip().lower()
@@ -37,10 +37,10 @@ def search_games(
 
 
 def find_exact_game(
-    games: Sequence[LegacyGame],
-    by_appid: Mapping[int, LegacyGame],
+    games: Sequence[Game],
+    by_appid: Mapping[int, Game],
     query: str | None,
-) -> LegacyGame | None:
+) -> Game | None:
     """Exact AppID, then exact (trimmed, case-insensitive) name, then best search match."""
     cleaned = str(query or "").strip()
     if not cleaned:

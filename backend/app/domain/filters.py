@@ -15,7 +15,7 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 INF = math.inf
 
@@ -122,7 +122,7 @@ def _tag_hit(filter_tag: str, game_tags_lower: Sequence[str]) -> bool:
     return any(filter_tag in tag for tag in game_tags_lower)
 
 
-def matches(game: LegacyGame, b: ResolvedBounds) -> bool:
+def matches(game: Game, b: ResolvedBounds) -> bool:
     if game.release_year not in b.years:
         return False
     if not (b.min_revenue <= game.estimated_revenue <= b.max_revenue):
@@ -144,10 +144,10 @@ def matches(game: LegacyGame, b: ResolvedBounds) -> bool:
 
 
 def filter_games(
-    games: Iterable[LegacyGame],
+    games: Iterable[Game],
     filters: StudyFilters,
     exclude_appids: frozenset[int] | set[int] = frozenset(),
-) -> list[LegacyGame]:
+) -> list[Game]:
     """Return matching games in input order, skipping any AppID in ``exclude_appids``."""
     bounds = resolve(filters)
     return [g for g in games if g.appid not in exclude_appids and matches(g, bounds)]

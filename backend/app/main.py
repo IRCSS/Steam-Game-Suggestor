@@ -15,7 +15,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import exports, games, health, languages, studies, suggestions
+from app.api import charts, data, exports, games, health, languages, studies, suggestions
 from app.api import settings as settings_api
 from app.config import APP_VERSION, REPO_ROOT, Settings, load_settings
 from app.logging_config import configure_logging, get_logger
@@ -104,6 +104,8 @@ def create_app(settings: Settings | None = None, service: StudyService | None = 
     app.include_router(languages.router)
     app.include_router(exports.router)
     app.include_router(settings_api.router)
+    app.include_router(data.router)
+    app.include_router(charts.router)
 
     # Serve the built UI from the same origin when available (`npm run build` first).
     FRONTEND_DIST = _frontend_dist()

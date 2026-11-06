@@ -4,6 +4,7 @@ Storage layout (all inside the configurable data folder, safe to share between P
   catalog.sqlite3          read-only game catalog (written only by the importer / build)
   studies/<appid>.json     one file per study (StudyStore)
   cache/languages-*.jsonl  per-PC Steam language lookups (LanguageCache)
+  observations/steam-*.jsonl  per-PC Steam refresh/discovery results, overlaid on the catalog
 Session view history is in memory (SessionStore). Exports go to the export folder.
 
 The ~15.5k compact catalog records are cached in memory; filtering is pure Python domain code so
@@ -23,20 +24,33 @@ from pathlib import Path
 
 import httpx
 
-from app.config import Settings
+from app.config import Settings, read_settings_file
 from app.db import queries
 from app.db.connection import CatalogError, open_catalog, schema_version
 from app.domain.filters import StudyFilters, legacy_default_filters
 from app.domain.languages import LanguageRecord, english_flags, exclude_non_english
 from app.domain.lookup import find_exact_game, search_games
-from app.domain.models import LegacyGame
+from app.domain.models import Game
+from app.domain.observations import build_catalog
 from app.domain.qualification import CatalogPolicy, qualify
 from app.domain.session import SessionStore
 from app.domain.suggestion import MatchCount, Suggestion, count_matches, suggest
-from app.jobs.language_job import LanguageJob
+from app.jobs.runner import JobRunner
+from app.jobs.sync import (
+    DiscoverParams,
+    Preview,
+    RefreshParams,
+    Target,
+    estimate,
+    make_discover_task,
+    make_refresh_task,
+    make_single_app_task,
+    select_refresh_targets,
+)
 from app.logging_config import get_logger
 from app.providers.steam_store import Artwork, fetch_artwork, make_client
 from app.storage.language_cache import LanguageCache
+from app.storage.observations import ObservationStore
 from app.storage.studies import Study, StudyStore
 
 log = get_logger("service")
@@ -51,15 +65,15 @@ class OfflineError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class Catalog:
-    games: tuple[LegacyGame, ...]
-    by_appid: dict[int, LegacyGame]
+    games: tuple[Game, ...]
+    by_appid: dict[int, Game]
     tags: tuple[str, ...]
     year_counts: dict[int, int]
     max_rank: int
     import_info: queries.ImportInfo | None
 
     @classmethod
-    def build(cls, games: list[LegacyGame], info: queries.ImportInfo | None) -> Catalog:
+    def build(cls, games: list[Game], info: queries.ImportInfo | None) -> Catalog:
         tags = sorted({t for g in games for t in g.tags})  # codepoint order, as legacy HTML
         year_counts = dict(sorted(Counter(g.release_year for g in games).items()))
         max_rank = max((g.qualifying_games_in_year for g in games), default=0)
@@ -99,19 +113,28 @@ class StudyService:
                 log.error("catalog unavailable", extra={"err": str(exc)})
         self._lock = threading.RLock()
         self._catalog: Catalog | None = None
-        self._catalog_run_id: int | None = None
+        self._catalog_key: tuple[int | None, int] | None = None
+        self._legacy: list[Game] = []
+        self._legacy_run_id: int | None = -1
         self.sessions = SessionStore()
         self.studies = StudyStore(settings.studies_dir)
         self.languages = LanguageCache(settings.cache_dir)
         self._http_factory = http_factory or make_client
-        self.language_job = LanguageJob(
-            self.languages, self._http_factory, settings.steam_requests_per_minute
+        self.observations = ObservationStore(settings.data_dir / "observations")
+        self.jobs = JobRunner(
+            self._http_factory,
+            {
+                "store": 60.0 / settings.steam_requests_per_minute,
+                "reviews": 60.0 / settings.steam_requests_per_minute,
+                "steamspy": 1.2,  # SteamSpy allows ~1 request/second
+                "applist": 1.0,
+            },
         )
         self._artwork: OrderedDict[int, Artwork | None] = OrderedDict()
 
     def close(self) -> None:
-        self.language_job.cancel()
-        self.language_job.join(timeout=5)
+        self.jobs.cancel()
+        self.jobs.join(timeout=5)
         with self._lock:
             if self._conn is not None:
                 self._conn.close()
@@ -120,15 +143,30 @@ class StudyService:
     # --- catalog -----------------------------------------------------------------------------
 
     def catalog(self) -> Catalog:
+        """Legacy catalog overlaid with Steam observations from every PC, ranked; cached until
+        a new import or new observations arrive."""
         with self._lock:
             if self._conn is None:
                 return EMPTY_CATALOG
             info = queries.latest_import(self._conn)
             run_id = info.run_id if info else None
-            if self._catalog is None or run_id != self._catalog_run_id:
-                self._catalog = Catalog.build(queries.load_legacy_games(self._conn), info)
-                self._catalog_run_id = run_id
+            if run_id != self._legacy_run_id:
+                self._legacy = queries.load_legacy_games(self._conn)
+                self._legacy_run_id = run_id
+            state = self.observations.state()
+            key = (run_id, self.observations.version)
+            if self._catalog is None or key != self._catalog_key:
+                games = build_catalog(self._legacy, state.store, state.reviews, state.tags)
+                self._catalog = Catalog.build(games, info)
+                self._catalog_key = key
             return self._catalog
+
+    def legacy_games(self) -> list[Game]:
+        self.catalog()
+        return self._legacy
+
+    def http_client(self) -> httpx.Client:
+        return self._http_factory()
 
     def schema_version(self) -> int:
         with self._lock:
@@ -152,14 +190,14 @@ class StudyService:
 
     # --- lookup ------------------------------------------------------------------------------
 
-    def get_game(self, appid: int) -> LegacyGame | None:
+    def get_game(self, appid: int) -> Game | None:
         return self.catalog().by_appid.get(appid)
 
-    def search(self, query: str, limit: int) -> list[LegacyGame]:
+    def search(self, query: str, limit: int) -> list[Game]:
         catalog = self.catalog()
         return search_games(catalog.games, catalog.by_appid, query, limit)
 
-    def resolve(self, query: str) -> LegacyGame | None:
+    def resolve(self, query: str) -> Game | None:
         catalog = self.catalog()
         return find_exact_game(catalog.games, catalog.by_appid, query)
 
@@ -167,7 +205,7 @@ class StudyService:
 
     def eligible(
         self, include_below_threshold: bool, require_english: bool, exclude_studies: bool
-    ) -> list[LegacyGame]:
+    ) -> list[Game]:
         games = qualify(self.catalog().games, self.policy(include_below_threshold))
         if require_english:
             games = exclude_non_english(games, english_flags(self.languages.records()))
@@ -212,7 +250,7 @@ class StudyService:
     def record_manual_view(self, session_id: str, appid: int) -> None:
         self.sessions.record_view(session_id, appid)
 
-    def history(self, session_id: str) -> list[LegacyGame]:
+    def history(self, session_id: str) -> list[Game]:
         catalog = self.catalog()
         return [
             catalog.by_appid[a] for a in self.sessions.history(session_id) if a in catalog.by_appid
@@ -226,7 +264,7 @@ class StudyService:
     def list_studies(self) -> list[Study]:
         return sorted(self.studies.all().values(), key=lambda s: s.added_at, reverse=True)
 
-    def add_study(self, game: LegacyGame) -> Study:
+    def add_study(self, game: Game) -> Study:
         return self.studies.add(game.appid, game.name)
 
     def remove_study(self, appid: int) -> bool:
@@ -237,15 +275,90 @@ class StudyService:
     def language_record(self, appid: int) -> LanguageRecord | None:
         return self.languages.records().get(appid)
 
-    def start_language_job(self, scope: str) -> bool:
+    # --- data jobs ---------------------------------------------------------------------------
+
+    def _require_online(self) -> None:
         if self.settings.offline:
-            raise OfflineError("Offline mode is on; Steam requests are disabled.")
-        appids = (
-            self.qualified_appids()
-            if scope == "qualified"
-            else [g.appid for g in self.catalog().games]
+            raise OfflineError("Offline mode is on; Steam requests are disabled (Settings).")
+
+    def refresh_targets(self, params: RefreshParams) -> list[Target]:
+        return select_refresh_targets(
+            self.catalog().games,
+            params,
+            self.settings.qualification_min_revenue_usd,
+            self.studies.appids(),
+            self.languages.records(),
+            self.observations.state(),
         )
-        return self.language_job.start(appids, scope)
+
+    def preview_refresh(self, params: RefreshParams) -> Preview:
+        targets = self.refresh_targets(params)
+        providers = {"reviews": "reviews", "store": "store", "tags": "steamspy"}
+        requests, seconds = estimate(
+            ([providers[p] for p in t.parts] for t in targets), self.jobs.intervals
+        )
+        return Preview(items=len(targets), requests=requests, seconds=seconds)
+
+    def start_refresh(self, params: RefreshParams, label: str) -> bool:
+        self._require_online()
+        targets = self.refresh_targets(params)
+        return self.jobs.start(
+            "refresh", label, make_refresh_task(targets, self.observations, self.languages)
+        )
+
+    def known_appids(self) -> frozenset[int]:
+        return frozenset(g.appid for g in self._legacy) | frozenset(self.catalog().by_appid)
+
+    def discovery_cursor(self) -> int:
+        state = self.observations.state()
+        return max([*self.known_appids(), *state.listed.keys()], default=0)
+
+    def pending_screening(self) -> int:
+        state = self.observations.state()
+        known = self.known_appids()
+        return sum(1 for a in state.listed if a not in state.reviews and a not in known)
+
+    def preview_discover(self, params: DiscoverParams) -> Preview:
+        pending = min(self.pending_screening(), params.max_new)
+        # Unknown number of new AppIDs until the list is read: assume max_new to screen.
+        items = max(pending, params.max_new)
+        requests, seconds = estimate((["reviews"] for _ in range(items)), self.jobs.intervals)
+        notes = [
+            "Most new games have too few reviews to reach the floor; only those that could are "
+            "looked up further (store details, tags), so the real count is usually lower."
+        ]
+        return Preview(
+            items=items,
+            requests=requests + 1,
+            seconds=seconds,
+            needs_key=not self.api_key(),
+            notes=notes,
+        )
+
+    def api_key(self) -> str:
+        """Steam Web API key from settings.json (server side only; never returned by the API)."""
+        content, _ = read_settings_file(self.settings.app_dir)
+        return content.steam.api_key
+
+    def start_discover(self, params: DiscoverParams) -> bool:
+        self._require_online()
+        key = self.api_key()
+        if not key:
+            raise OfflineError("Add a Steam Web API key in Settings to discover new games.")
+        task = make_discover_task(
+            params,
+            key,
+            self.settings.qualification_min_revenue_usd,
+            self.known_appids(),
+            self.observations,
+            self.languages,
+        )
+        return self.jobs.start("discover", "Discover new games", task)
+
+    def start_single_app(self, appid: int) -> bool:
+        self._require_online()
+        task = make_single_app_task(appid, self.observations, self.languages)
+        return self.jobs.start("app", f"Update AppID {appid}", task)
 
     # --- artwork & exports -------------------------------------------------------------------
 
@@ -266,7 +379,7 @@ class StudyService:
                 self._artwork.popitem(last=False)
         return art
 
-    def save_export(self, game: LegacyGame, jpeg: bytes) -> Path:
+    def save_export(self, game: Game, jpeg: bytes) -> Path:
         if not jpeg.startswith(b"\xff\xd8\xff"):
             raise ValueError("not a JPEG image")
         if len(jpeg) > MAX_EXPORT_BYTES:

@@ -42,6 +42,7 @@ Session view history is now kept in memory per app process (`app/domain/session.
 |---|---|
 | `studies/<appid>.json` | `schema_version`, `appid`, `name`, `status` ("study"), `added_at`, `added_by` (PC name), `updated_at`, `notes`, `research` (reserved for LLM results). Unknown keys preserved. |
 | `cache/languages-<pc>.jsonl` | one line per lookup: `appid`, `status` (`ok`/`unavailable`), `languages` (list), `fetched_at`, `source` |
+| `observations/steam-<pc>.jsonl` | one line per Steam fetch: `kind` = `store` (name, type, description, is_free, price_cents (undiscounted USD), release date/year, languages), `reviews` (total/positive/negative, all languages), `tags` (top 20 SteamSpy tags), or `listed` (AppID from the official app list). Newest per kind wins; review lines also form the history. |
 | `catalog.version` | version of the installed catalog (source SHA + schema) |
 | `logs/<pc>.log`, `logs/launcher-<pc>.log` | JSON logs |
 

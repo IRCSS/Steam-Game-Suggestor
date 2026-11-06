@@ -3,12 +3,12 @@ from __future__ import annotations
 import dataclasses
 
 from app.domain.filters import StudyFilters
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 ALL_YEARS = frozenset({2022, 2023, 2024, 2025})
 
 
-def game(**overrides: object) -> LegacyGame:
+def game(**overrides: object) -> Game:
     base: dict[str, object] = {
         "appid": 1,
         "name": "Test Game",
@@ -24,7 +24,7 @@ def game(**overrides: object) -> LegacyGame:
         "revenue_percentile_in_year": 88.2,
     }
     base.update(overrides)
-    return LegacyGame(**base)  # type: ignore[arg-type]
+    return Game(**base)  # type: ignore[arg-type]
 
 
 def open_filters(**overrides: object) -> StudyFilters:

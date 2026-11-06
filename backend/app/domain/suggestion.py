@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from app.domain.filters import StudyFilters, filter_games
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,18 +19,18 @@ class MatchCount:
 
 @dataclass(frozen=True, slots=True)
 class Suggestion:
-    game: LegacyGame | None
+    game: Game | None
     repeat_history_reset: bool
     candidate_count: int
 
 
-def choose_uniform(candidates: Sequence[LegacyGame], rng: random.Random) -> LegacyGame:
+def choose_uniform(candidates: Sequence[Game], rng: random.Random) -> Game:
     """Legacy: candidates[Math.floor(Math.random() * candidates.length)] - uniform."""
     return candidates[int(rng.random() * len(candidates))]
 
 
 def count_matches(
-    eligible: Sequence[LegacyGame],
+    eligible: Sequence[Game],
     filters: StudyFilters,
     avoid_repeats: bool,
     seen_appids: frozenset[int],
@@ -48,7 +48,7 @@ def count_matches(
 
 
 def suggest(
-    eligible: Sequence[LegacyGame],
+    eligible: Sequence[Game],
     filters: StudyFilters,
     avoid_repeats: bool,
     seen_appids: frozenset[int],

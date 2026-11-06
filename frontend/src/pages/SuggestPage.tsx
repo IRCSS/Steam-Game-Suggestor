@@ -8,32 +8,45 @@ import {
   type LanguageStatus,
   type MetaResponse,
   type StudyItem,
+  type StudyFilters,
   type SuggestionQuery,
 } from "../api/client";
 import { ExportCard } from "../components/ExportCard";
-import { SettingsDialog } from "../components/SettingsDialog";
 import { StudiesList } from "../components/StudiesList";
 import { renderJpeg, waitFor } from "../lib/exportJpeg";
 import { FilterSidebar } from "../components/FilterSidebar";
 import { GameCard } from "../components/GameCard";
 import { GameLookup } from "../components/GameLookup";
 import { HistoryList } from "../components/HistoryList";
-import { Toast, useToast } from "../components/Toast";
 import { type FilterForm, formFromDefaults, formToApi } from "../lib/filters";
 import { formatInt } from "../lib/format";
 import { SESSION_ID } from "../lib/session";
 
 interface Props {
   meta: MetaResponse;
+  notify: (message: string) => void;
   sessionId?: string;
-  onMetaChanged?: () => void;
+  /** Bumped by the shell when data changed elsewhere (settings saved, data job finished). */
+  refreshToken?: number;
+  onGameChange?: (game: GameReport | null) => void;
+  onFiltersChange?: (filters: StudyFilters) => void;
+  /** Open this game's report (e.g. clicked in the Charts tab). */
+  openRequest?: { appid: number; nonce: number } | null;
 }
 
 function errorText(error: unknown): string {
   return error instanceof ApiError ? error.message : "Unexpected error.";
 }
 
-export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Props) {
+export function SuggestPage({
+  meta,
+  notify,
+  sessionId = SESSION_ID,
+  refreshToken = 0,
+  onGameChange,
+  onFiltersChange,
+  openRequest = null,
+}: Props) {
   const defaults = useMemo(
     () => formFromDefaults(meta.default_filters, meta.default_avoid_repeats),
     [meta],
@@ -47,13 +60,12 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
   const [lookup, setLookup] = useState("");
   const [studies, setStudies] = useState<StudyItem[]>([]);
   const [languages, setLanguages] = useState<LanguageStatus | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [busy, setBusy] = useState<"study" | "export" | null>(null);
   const [exporting, setExporting] = useState<{ game: GameReport; at: Date } | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const artworkSettled = useRef<() => void>(() => undefined);
-  const toast = useToast();
+  const toast = { show: notify };
 
   const refreshSide = useCallback(() => {
     api.studies().then((r) => setStudies(r.items)).catch(() => undefined);
@@ -62,7 +74,11 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
 
   useEffect(() => {
     refreshSide();
-  }, [refreshSide]);
+  }, [refreshSide, refreshToken]);
+
+  useEffect(() => {
+    onGameChange?.(game);
+  }, [game, onGameChange]);
 
   const query: SuggestionQuery = useMemo(
     () => ({
@@ -90,7 +106,11 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [query, viewVersion]);
+  }, [query, viewVersion, refreshToken]);
+
+  useEffect(() => {
+    onFiltersChange?.(query.filters);
+  }, [query.filters, onFiltersChange]);
 
   const show = useCallback(
     (report: GameReport, newHistory: GameSummary[]) => {
@@ -152,6 +172,11 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
       toast.show(errorText(error));
     }
   };
+
+  useEffect(() => {
+    if (openRequest) queueMicrotask(() => void openGame(openRequest.appid));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to new requests only
+  }, [openRequest]);
 
   const reset = () => {
     setForm(defaults);
@@ -255,40 +280,7 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
 
   const ds = meta.dataset;
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Steam market study tool</p>
-          <h1>Indie Case Study Suggester</h1>
-          <p className="intro">
-            Filter the recent Steam market and draw a random game to study its positioning,
-            pricing, commercial outcome, tags, artwork, review score, and store pitch.
-          </p>
-        </div>
-        <div className="topbar-side">
-          <div className="dataset-badge" title={ds.scope_label}>
-            {formatInt(ds.qualified_games)} qualified games
-            <span className="dataset-badge-sub">
-              of {formatInt(ds.total_games)} imported · {ds.scope_label}
-            </span>
-          </div>
-          <button
-            id="settingsButton"
-            className="gear-button"
-            type="button"
-            aria-label="Settings"
-            title="Settings"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94 7.07 7.07 0 0 0-.06-.94l2.03-1.58a.48.48 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54a7.03 7.03 0 0 0-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0-.06.94c0 .32.02.63.06.94l-2.03 1.58a.48.48 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54a7.03 7.03 0 0 0 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"
-              />
-            </svg>
-          </button>
-        </div>
-      </header>
+    <>
 
       <div className="layout">
         <FilterSidebar
@@ -351,21 +343,6 @@ export function SuggestPage({ meta, sessionId = SESSION_ID, onMetaChanged }: Pro
           />
         </div>
       )}
-      {settingsOpen && (
-        <SettingsDialog
-          onClose={() => {
-            setSettingsOpen(false);
-            refreshSide();
-          }}
-          onSaved={() => {
-            onMetaChanged?.();
-            refreshSide();
-            setViewVersion((v) => v + 1);
-          }}
-          notify={toast.show}
-        />
-      )}
-      <Toast message={toast.message} visible={toast.visible} />
-    </main>
+    </>
   );
 }

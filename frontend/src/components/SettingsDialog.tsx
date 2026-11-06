@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, api, type LanguageStatus, type SettingsView } from "../api/client";
-import { formatInt } from "../lib/format";
+import { useEffect, useState } from "react";
+import { ApiError, api, type SettingsView } from "../api/client";
 
 interface Props {
   onClose: () => void;
@@ -31,94 +30,6 @@ const toDraft = (s: SettingsView): Draft => ({
   steamKey: "",
   llmKey: "",
 });
-
-function duration(seconds: number): string {
-  if (seconds < 90) return `${Math.max(1, Math.round(seconds))} s`;
-  const minutes = Math.round(seconds / 60);
-  return minutes < 90 ? `${minutes} min` : `${(minutes / 60).toFixed(1)} h`;
-}
-
-function LanguageSection({ notify }: { notify: (m: string) => void }) {
-  const [status, setStatus] = useState<LanguageStatus | null>(null);
-  const running = status?.job.state === "running";
-
-  const refresh = useCallback(() => {
-    api.languageStatus().then(setStatus).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(refresh, 1000);
-    return () => window.clearInterval(timer);
-  }, [running, refresh]);
-
-  const start = async (scope: "qualified" | "all") => {
-    try {
-      setStatus(await api.fetchLanguages(scope));
-    } catch (error) {
-      notify(error instanceof ApiError ? error.message : "Could not start the lookup.");
-    }
-  };
-
-  if (!status) return <p className="settings-help">Loading language status…</p>;
-  const job = status.job;
-  const remaining = Math.max(0, job.total - job.done);
-  const missingQualified = status.qualified_games - status.known_qualified;
-  const missingAll = status.total_games - status.known;
-  const percent = job.total ? Math.round((100 * job.done) / job.total) : 0;
-
-  return (
-    <div className="settings-languages">
-      <p className="settings-help">
-        English support is known for <strong>{formatInt(status.known_qualified)}</strong> of{" "}
-        {formatInt(status.qualified_games)} qualified games ({formatInt(status.known)} of{" "}
-        {formatInt(status.total_games)} overall; {formatInt(status.no_english)} without English).
-        Looked up once from the Steam store and shared with every PC using this data folder.
-      </p>
-      {running ? (
-        <>
-          <div className="progress" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-            <div className="progress-bar" style={{ width: `${percent}%` }} />
-          </div>
-          <p className="settings-help" data-testid="language-progress">
-            {formatInt(job.done)} / {formatInt(job.total)} · about{" "}
-            {duration(remaining * job.seconds_per_request)} left · keep the app open (it resumes
-            where it stopped if closed).
-          </p>
-          <button className="secondary-button" type="button" onClick={() => api.cancelLanguages().then(setStatus)}>
-            Stop lookup
-          </button>
-        </>
-      ) : (
-        <div className="settings-buttons">
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={status.offline || missingQualified === 0}
-            onClick={() => start("qualified")}
-          >
-            Look up qualified games ({formatInt(missingQualified)}, ~
-            {duration(missingQualified * job.seconds_per_request)})
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={status.offline || missingAll === 0}
-            onClick={() => start("all")}
-          >
-            Look up all games ({formatInt(missingAll)}, ~{duration(missingAll * job.seconds_per_request)})
-          </button>
-        </div>
-      )}
-      {status.offline && <p className="settings-warning">Offline mode is on - lookups are disabled.</p>}
-      {job.message && !running && <p className="settings-help">Last run: {job.message} ({formatInt(job.errors)} errors)</p>}
-    </div>
-  );
-}
 
 /** Global settings (gear icon). Saved to settings.json next to the app. */
 export function SettingsDialog({ onClose, onSaved, notify }: Props) {
@@ -231,11 +142,18 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
                 <input type="checkbox" checked={draft.offline} onChange={(e) => set("offline", e.target.checked)} />
                 Offline mode (no Steam requests at all)
               </label>
+              {view.offline_forced && (
+                <p className="settings-warning" data-testid="offline-forced">
+                  Offline mode is forced on by the STEAM_STUDY_OFFLINE environment variable.
+                </p>
+              )}
             </section>
 
             <section className="settings-section">
-              <h3 className="section-title">Languages (for "Must support English")</h3>
-              <LanguageSection notify={notify} />
+              <h3 className="section-title">Steam requests</h3>
+              <p className="settings-help">
+                Data updates (new games, refreshes, languages) are started from the Data tab.
+              </p>
               <label className="settings-field">
                 <span className="input-caption">Steam store requests per minute (polite limit)</span>
                 <input type="number" min={1} max={120} value={draft.rpm} onChange={(e) => set("rpm", e.target.value)} />
@@ -243,10 +161,11 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
             </section>
 
             <section className="settings-section">
-              <h3 className="section-title">API keys (not used yet)</h3>
+              <h3 className="section-title">API keys</h3>
               <label className="settings-field">
                 <span className="input-caption">
-                  Steam Web API key {view.steam_api_key_set ? "(set)" : "(not set)"}
+                  Steam Web API key {view.steam_api_key_set ? "(set)" : "(not set)"} - needed to
+                  add new games; free at steamcommunity.com/dev/apikey
                 </span>
                 <input type="password" autoComplete="off" placeholder={view.steam_api_key_set ? "•••••• (unchanged)" : ""} value={draft.steamKey} onChange={(e) => set("steamKey", e.target.value)} />
               </label>
@@ -265,7 +184,9 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
                 </label>
               </div>
               <label className="settings-field">
-                <span className="input-caption">LLM API key {view.llm_api_key_set ? "(set)" : "(not set)"}</span>
+                <span className="input-caption">
+                  LLM API key {view.llm_api_key_set ? "(set)" : "(not set)"} (LLM research: coming)
+                </span>
                 <input type="password" autoComplete="off" placeholder={view.llm_api_key_set ? "•••••• (unchanged)" : ""} value={draft.llmKey} onChange={(e) => set("llmKey", e.target.value)} />
               </label>
               <p className="settings-warning">

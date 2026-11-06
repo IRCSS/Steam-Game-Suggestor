@@ -231,44 +231,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Language Status */
-        get: operations["language_status_api_languages_status_get"];
+        /** Get Language Status */
+        get: operations["get_language_status_api_languages_status_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/languages/fetch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start Fetch */
-        post: operations["start_fetch_api_languages_fetch_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/languages/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel Fetch */
-        post: operations["cancel_fetch_api_languages_cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -351,10 +317,251 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/data/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Data Status */
+        get: operations["data_status_api_data_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/jobs/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Job */
+        post: operations["preview_job_api_data_jobs_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Job */
+        post: operations["start_job_api_data_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/jobs/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current Job */
+        get: operations["current_job_api_data_jobs_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/jobs/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Job */
+        post: operations["cancel_job_api_data_jobs_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/data/test-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Key
+         * @description One request to Steam's app list to check the configured Web API key.
+         */
+        post: operations["test_key_api_data_test_key_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/charts/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Overview */
+        post: operations["overview_api_charts_overview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/charts/history/{appid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * History
+         * @description Review/revenue snapshots for one game: the legacy import (date unknown) plus every
+         *     Steam refresh. Fewer than two dated points means there is no trend to show yet.
+         */
+        get: operations["history_api_charts_history__appid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChartBin */
+        ChartBin: {
+            /** Start */
+            start: number;
+            /** End */
+            end: number | null;
+            /** Count */
+            count: number;
+        };
+        /** ChartPoint */
+        ChartPoint: {
+            /** Appid */
+            appid: number;
+            /** Name */
+            name: string;
+            /** Year */
+            year: number;
+            /** Price */
+            price: number;
+            /** Revenue */
+            revenue: number;
+            /** Reviews */
+            reviews: number;
+            /** Score */
+            score: number;
+            /** In Studies */
+            in_studies: boolean;
+        };
+        /** ChartTag */
+        ChartTag: {
+            /** Tag */
+            tag: string;
+            /** Count */
+            count: number;
+            /** Median Revenue */
+            median_revenue: number;
+            /** Median Reviews */
+            median_reviews: number;
+            /** Median Score */
+            median_score: number;
+        };
+        /** ChartYear */
+        ChartYear: {
+            /** Year */
+            year: number;
+            /** Count */
+            count: number;
+            /** Median Revenue */
+            median_revenue: number;
+        };
+        /** ChartsRequest */
+        ChartsRequest: {
+            /**
+             * Use Study Filters
+             * @default false
+             */
+            use_study_filters: boolean;
+            filters?: components["schemas"]["StudyFiltersModel"] | null;
+            /**
+             * Include Below Threshold
+             * @default false
+             */
+            include_below_threshold: boolean;
+            /** Years */
+            years?: number[];
+            /**
+             * Min Tag Count
+             * @default 20
+             */
+            min_tag_count: number;
+            /**
+             * Tag Limit
+             * @default 20
+             */
+            tag_limit: number;
+        };
+        /** ChartsResponse */
+        ChartsResponse: {
+            /** Scope Label */
+            scope_label: string;
+            /** As Of */
+            as_of: string;
+            /** Catalog Total */
+            catalog_total: number;
+            kpis: components["schemas"]["KpiView"];
+            /** Revenue Bins */
+            revenue_bins: components["schemas"]["ChartBin"][];
+            /** Points */
+            points: components["schemas"]["ChartPoint"][];
+            /** Points Total */
+            points_total: number;
+            /** Tags */
+            tags: components["schemas"]["ChartTag"][];
+            /** Years */
+            years: components["schemas"]["ChartYear"][];
+            /** Revenue Model */
+            revenue_model: string;
+        };
         /** CountResponse */
         CountResponse: {
             /** Count */
@@ -363,6 +570,46 @@ export interface components {
             count_ignoring_history: number;
             /** All Seen */
             all_seen: boolean;
+        };
+        /** DataStatus */
+        DataStatus: {
+            /** Data Dir */
+            data_dir: string;
+            /** Total Games */
+            total_games: number;
+            /** Qualified Games */
+            qualified_games: number;
+            /** Legacy Unchanged */
+            legacy_unchanged: number;
+            /** Refreshed */
+            refreshed: number;
+            /** Discovered */
+            discovered: number;
+            /** Years */
+            years: {
+                [key: string]: number;
+            };
+            /** Last Update */
+            last_update: string | null;
+            /** Discovery Cursor Appid */
+            discovery_cursor_appid: number;
+            /** Listed Not Screened */
+            listed_not_screened: number;
+            /** Languages Known */
+            languages_known: number;
+            /** Steam Api Key Set */
+            steam_api_key_set: boolean;
+            /** Offline */
+            offline: boolean;
+            /** Qualification Threshold Usd */
+            qualification_threshold_usd: number;
+            /** Observation Files */
+            observation_files: components["schemas"]["ShardInfo"][];
+            /** Seconds Per Request */
+            seconds_per_request: {
+                [key: string]: number;
+            };
+            job: components["schemas"]["JobView"];
         };
         /** DatasetInfo */
         DatasetInfo: {
@@ -387,6 +634,21 @@ export interface components {
             /** Revenue Model Label */
             revenue_model_label: string;
         };
+        /** DiscoverOptions */
+        DiscoverOptions: {
+            /**
+             * Max New
+             * @default 500
+             */
+            max_new: number;
+            /**
+             * Fetch Tags
+             * @default true
+             */
+            fetch_tags: boolean;
+            /** Min Revenue Usd */
+            min_revenue_usd?: number | null;
+        };
         /** GameReport */
         GameReport: {
             /** Appid */
@@ -410,6 +672,7 @@ export interface components {
             steam_url: string;
             languages: components["schemas"]["LanguageInfo"];
             study: components["schemas"]["StudyState"];
+            provenance: components["schemas"]["Provenance"];
         };
         /** GameSearchResponse */
         GameSearchResponse: {
@@ -450,10 +713,93 @@ export interface components {
             /** Message */
             message?: string | null;
         };
+        /** HistoryPoint */
+        HistoryPoint: {
+            /** Observed At */
+            observed_at: string | null;
+            /** Source */
+            source: string;
+            /** Total Reviews */
+            total_reviews: number;
+            /** Estimated Revenue */
+            estimated_revenue: number;
+        };
         /** HistoryResponse */
         HistoryResponse: {
             /** Items */
             items: components["schemas"]["GameSummary"][];
+        };
+        /** HistoryResponseModel */
+        HistoryResponseModel: {
+            /** Appid */
+            appid: number;
+            /** Name */
+            name: string;
+            /** Points */
+            points: components["schemas"]["HistoryPoint"][];
+            /** Enough History */
+            enough_history: boolean;
+        };
+        /** JobPreview */
+        JobPreview: {
+            /** Items */
+            items: number;
+            /** Requests */
+            requests: number;
+            /** Seconds */
+            seconds: number;
+            /** Needs Key */
+            needs_key: boolean;
+            /** Notes */
+            notes: string[];
+        };
+        /** JobRequest */
+        JobRequest: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "refresh" | "discover" | "languages" | "app";
+            refresh?: components["schemas"]["RefreshOptions"] | null;
+            discover?: components["schemas"]["DiscoverOptions"] | null;
+            /** Appid */
+            appid?: number | null;
+            /** Label */
+            label?: string | null;
+        };
+        /** JobView */
+        JobView: {
+            /** Job Id */
+            job_id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "idle" | "running" | "completed" | "cancelled" | "failed";
+            /** Total */
+            total: number;
+            /** Done */
+            done: number;
+            /** Counters */
+            counters: {
+                [key: string]: number;
+            };
+            /** Requests */
+            requests: number;
+            /** Started At */
+            started_at: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Eta Seconds */
+            eta_seconds: number | null;
+            /** Message */
+            message: string;
+            /** Recent */
+            recent: string[];
         };
         /** JpegExportRequest */
         JpegExportRequest: {
@@ -471,14 +817,25 @@ export interface components {
             /** Folder */
             folder: string;
         };
-        /** LanguageFetchRequest */
-        LanguageFetchRequest: {
-            /**
-             * Scope
-             * @default qualified
-             * @enum {string}
-             */
-            scope: "qualified" | "all";
+        /** KeyTestResult */
+        KeyTestResult: {
+            /** Ok */
+            ok: boolean;
+            /** Message */
+            message: string;
+        };
+        /** KpiView */
+        KpiView: {
+            /** Count */
+            count: number;
+            /** Median Revenue */
+            median_revenue: number | null;
+            /** Median Price */
+            median_price: number | null;
+            /** Median Reviews */
+            median_reviews: number | null;
+            /** Median Score */
+            median_score: number | null;
         };
         /** LanguageInfo */
         LanguageInfo: {
@@ -493,38 +850,6 @@ export interface components {
             languages: string[];
             /** Fetched At */
             fetched_at: string | null;
-        };
-        /** LanguageJobView */
-        LanguageJobView: {
-            /**
-             * State
-             * @enum {string}
-             */
-            state: "idle" | "running" | "completed" | "cancelled" | "failed";
-            /** Scope */
-            scope: string;
-            /** Total */
-            total: number;
-            /** Done */
-            done: number;
-            /** Found */
-            found: number;
-            /** Unavailable */
-            unavailable: number;
-            /** Errors */
-            errors: number;
-            /** Skipped */
-            skipped: number;
-            /** Started At */
-            started_at: string | null;
-            /** Finished At */
-            finished_at: string | null;
-            /** Message */
-            message: string;
-            /** Recent */
-            recent: string[];
-            /** Seconds Per Request */
-            seconds_per_request: number;
         };
         /** LanguageStatusResponse */
         LanguageStatusResponse: {
@@ -544,9 +869,11 @@ export interface components {
             unavailable: number;
             /** Offline */
             offline: boolean;
-            job: components["schemas"]["LanguageJobView"];
         };
-        /** LegacyRank */
+        /**
+         * LegacyRank
+         * @description Yearly rank over the local catalog (equals the imported legacy rank until data changes).
+         */
         LegacyRank: {
             /** Rank */
             rank: number;
@@ -558,6 +885,10 @@ export interface components {
             population: string;
             /** Scope Label */
             scope_label: string;
+            /** Legacy Rank */
+            legacy_rank?: number | null;
+            /** Legacy Population Count */
+            legacy_population_count?: number | null;
         };
         /** MetaResponse */
         MetaResponse: {
@@ -587,12 +918,63 @@ export interface components {
              */
             target: "data" | "export" | "app";
         };
+        /** Provenance */
+        Provenance: {
+            /**
+             * Data Source
+             * @enum {string}
+             */
+            data_source: "legacy_import" | "steam" | "steam_new";
+            /** Reviews Observed At */
+            reviews_observed_at: string | null;
+            /** Store Observed At */
+            store_observed_at: string | null;
+            /** Tags Observed At */
+            tags_observed_at: string | null;
+            /** Tags Source */
+            tags_source: string;
+            /** Release Date */
+            release_date: string | null;
+        };
         /** Qualification */
         Qualification: {
             /** Qualified */
             qualified: boolean;
             /** Threshold Usd */
             threshold_usd: number;
+        };
+        /** RefreshOptions */
+        RefreshOptions: {
+            /**
+             * Scope
+             * @default qualified
+             * @enum {string}
+             */
+            scope: "qualified" | "all" | "studies";
+            /**
+             * Years
+             * @description Empty = all years
+             */
+            years?: number[];
+            /**
+             * Min Revenue Usd
+             * @description None = catalog floor
+             */
+            min_revenue_usd?: number | null;
+            /** Parts */
+            parts?: ("reviews" | "store" | "tags")[];
+            /**
+             * Stale Days
+             * @default 7
+             */
+            stale_days: number;
+            /**
+             * Only Missing Languages
+             * @default false
+             */
+            only_missing_languages: boolean;
+            /** Limit */
+            limit?: number | null;
         };
         /** RevenueEstimate */
         RevenueEstimate: {
@@ -664,6 +1046,8 @@ export interface components {
             qualification_min_revenue_usd: number;
             /** Offline Mode */
             offline_mode: boolean;
+            /** Offline Forced */
+            offline_forced: boolean;
             /** Steam Api Key Set */
             steam_api_key_set: boolean;
             /** Steam Store Requests Per Minute */
@@ -679,6 +1063,13 @@ export interface components {
             llm_api_key_set: boolean;
             /** Warning */
             warning: string | null;
+        };
+        /** ShardInfo */
+        ShardInfo: {
+            /** File */
+            file: string;
+            /** Bytes */
+            bytes: number;
         };
         /** StudiesResponse */
         StudiesResponse: {
@@ -1227,60 +1618,7 @@ export interface operations {
             };
         };
     };
-    language_status_api_languages_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LanguageStatusResponse"];
-                };
-            };
-        };
-    };
-    start_fetch_api_languages_fetch_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LanguageFetchRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LanguageStatusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    cancel_fetch_api_languages_cancel_post: {
+    get_language_status_api_languages_status_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1433,6 +1771,216 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    data_status_api_data_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataStatus"];
+                };
+            };
+        };
+    };
+    preview_job_api_data_jobs_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_job_api_data_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    current_job_api_data_jobs_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+        };
+    };
+    cancel_job_api_data_jobs_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+        };
+    };
+    test_key_api_data_test_key_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyTestResult"];
+                };
+            };
+        };
+    };
+    overview_api_charts_overview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChartsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChartsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    history_api_charts_history__appid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoryResponseModel"];
                 };
             };
             /** @description Validation Error */

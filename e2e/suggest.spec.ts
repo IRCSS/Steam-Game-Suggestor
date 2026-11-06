@@ -8,7 +8,7 @@ test("happy path: filter, suggest, copy, avoid repeats, reset, lookup", async ({
 }) => {
   await page.goto("/");
   await expect(page.locator(".dataset-badge")).toContainText("3,704 qualified games");
-  await expect(page.locator(".dataset-badge")).toContainText("15,521 imported");
+  await expect(page.locator(".dataset-badge")).toContainText("15,521 in catalog");
   expect(await settledCount(page)).toBe("1,743 matches");
   await expect(page.locator("#emptyState")).toBeVisible();
 

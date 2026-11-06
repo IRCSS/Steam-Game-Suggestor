@@ -103,8 +103,8 @@ test("Settings dialog shows paths next to the app and applies changes", async ({
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(path.join(APP_DIR, "data"));
   await expect(dialog).toContainText(path.join(APP_DIR, "studiesJPG"));
-  await expect(dialog).toContainText("Offline mode is on");
-  await expect(dialog.getByRole("button", { name: /Look up qualified games/ })).toBeDisabled();
+  await expect(dialog.getByTestId("offline-forced")).toContainText("forced on");
+  await expect(dialog).toContainText("started from the Data tab");
 
   // Raise the floor -> qualified badge shrinks; then restore.
   await dialog.locator("#settingsFloor").fill("1000000");

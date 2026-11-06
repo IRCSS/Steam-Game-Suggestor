@@ -16,7 +16,6 @@ from app.services import StudyService, export_filename
 from app.storage.language_cache import LanguageCache
 from app.storage.studies import StudyStore
 from tests.conftest import HttpHandler, make_settings
-from tests.unit.test_languages_session import VAMPIRE_LANGUAGES
 
 SESSION = "studies-session-01"
 
@@ -181,117 +180,6 @@ def test_changing_data_folder_copies_catalog_only(
 
 
 # --- languages -------------------------------------------------------------------------------
-
-
-def steam_handler(languages: dict[int, str | None], calls: list[int]) -> HttpHandler:
-    """Fake store: dict value None -> success:false; first call per appid in `flaky` -> 429."""
-
-    def handle(request: httpx.Request) -> httpx.Response:
-        appid = int(request.url.params["appids"])
-        calls.append(appid)
-        if appid not in languages or languages[appid] is None:
-            return httpx.Response(200, json={str(appid): {"success": False}})
-        data = {"type": "game", "supported_languages": languages[appid]}
-        return httpx.Response(200, json={str(appid): {"success": True, "data": data}})
-
-    return handle
-
-
-def wait_for_job(client: TestClient, timeout: float = 15) -> dict[str, Any]:
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        status = client.get("/api/languages/status").json()
-        if status["job"]["state"] != "running":
-            return status
-        time.sleep(0.05)
-    raise AssertionError("language job did not finish")
-
-
-def test_language_job_and_english_filter(
-    online_client_factory: Callable[[HttpHandler], tuple[TestClient, StudyService]],
-) -> None:
-    calls: list[int] = []
-    client, service = online_client_factory(lambda r: httpx.Response(500))
-    ids = [g.appid for g in service.catalog().games if g.estimated_revenue >= 100_000]
-    japanese_only = ids[0]
-    english = ids[1]
-    langs: dict[int, str | None] = {a: VAMPIRE_LANGUAGES for a in ids}
-    langs[japanese_only] = "Japanese<br><strong>*</strong>languages with full audio support"
-    langs[ids[2]] = None  # unavailable
-    service._http_factory = lambda: httpx.Client(
-        transport=httpx.MockTransport(steam_handler(langs, calls))
-    )
-    service.language_job.client_factory = service._http_factory
-    service.language_job._sleep = no_sleep
-
-    assert client.post("/api/languages/fetch", json={"scope": "qualified"}).status_code == 200
-    status = wait_for_job(client)
-    assert status["job"]["state"] == "completed"
-    assert status["job"]["total"] == len(ids) and status["job"]["errors"] == 0
-    assert status["known_qualified"] == len(ids) - 1  # one unavailable
-    assert status["no_english"] == 1 and status["unavailable"] == 1
-    assert sorted(calls) == sorted(ids)
-
-    report = client.get(f"/api/games/{japanese_only}").json()["languages"]
-    assert report == {
-        "status": "ok",
-        "english": False,
-        "languages": ["Japanese"],
-        "fetched_at": report["fetched_at"],
-    }
-    assert client.get(f"/api/games/{english}").json()["languages"]["english"] is True
-
-    wide = {"min_revenue": None, "max_revenue": None, "min_review_score": None}
-    plain = client.post("/api/suggestions/count", json=query(client, filters=wide)).json()
-    english_only = client.post(
-        "/api/suggestions/count", json=query(client, filters={**wide, "require_english": True})
-    ).json()
-    assert english_only["count"] == plain["count"] - 1
-
-    # Resumable: a second run skips everything already cached (no new requests).
-    calls.clear()
-    client.post("/api/languages/fetch", json={"scope": "qualified"})
-    status = wait_for_job(client)
-    assert calls == [] and status["job"]["skipped"] == len(ids)
-
-
-def test_language_job_retries_429_with_retry_after(
-    online_client_factory: Callable[[HttpHandler], tuple[TestClient, StudyService]],
-) -> None:
-    attempts: dict[int, int] = {}
-    waits: list[float] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        appid = int(request.url.params["appids"])
-        attempts[appid] = attempts.get(appid, 0) + 1
-        if attempts[appid] == 1:
-            return httpx.Response(429, headers={"Retry-After": "7"})
-        data = {"supported_languages": "English"}
-        return httpx.Response(200, json={str(appid): {"success": True, "data": data}})
-
-    client, service = online_client_factory(handler)
-    service.language_job._sleep = waits.append
-    client.post("/api/languages/fetch", json={"scope": "qualified"})
-    status = wait_for_job(client)
-    assert status["job"]["state"] == "completed" and status["job"]["errors"] == 0
-    assert all(n == 2 for n in attempts.values())
-    assert 7.0 in waits
-
-
-def test_language_job_gives_up_after_max_attempts(
-    online_client_factory: Callable[[HttpHandler], tuple[TestClient, StudyService]],
-) -> None:
-    client, service = online_client_factory(lambda r: httpx.Response(503))
-    service.language_job._sleep = no_sleep
-    client.post("/api/languages/fetch", json={"scope": "qualified"})
-    status = wait_for_job(client)
-    assert status["job"]["state"] == "completed"
-    assert status["job"]["errors"] == status["job"]["total"] and status["known"] == 0
-
-
-def test_language_fetch_refused_offline(sample_client: TestClient) -> None:
-    res = sample_client.post("/api/languages/fetch", json={"scope": "all"})
-    assert res.status_code == 409 and "Offline" in res.json()["detail"]
 
 
 def test_language_cache_merges_shards_from_several_pcs(tmp_path: Path) -> None:

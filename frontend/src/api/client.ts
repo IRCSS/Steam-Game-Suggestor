@@ -16,6 +16,15 @@ export type StudiesResponse = Schemas["StudiesResponse"];
 export type StudyItem = Schemas["StudyItem"];
 export type LanguageStatus = Schemas["LanguageStatusResponse"];
 export type JpegExportResponse = Schemas["JpegExportResponse"];
+export type DataStatus = Schemas["DataStatus"];
+export type JobView = Schemas["JobView"];
+export type JobRequest = Schemas["JobRequest"];
+export type JobPreview = Schemas["JobPreview"];
+export type RefreshOptions = Schemas["RefreshOptions"];
+export type DiscoverOptions = Schemas["DiscoverOptions"];
+export type ChartsRequest = Schemas["ChartsRequest"];
+export type ChartsResponse = Schemas["ChartsResponse"];
+export type HistoryResponse2 = Schemas["HistoryResponseModel"];
 
 export class ApiError extends Error {
   constructor(
@@ -86,9 +95,18 @@ export const api = {
     request<SettingsView>("/api/settings", { method: "PUT", body: JSON.stringify(body) }),
 
   languageStatus: () => request<LanguageStatus>("/api/languages/status"),
-  fetchLanguages: (scope: "qualified" | "all") =>
-    request<LanguageStatus>("/api/languages/fetch", post({ scope })),
-  cancelLanguages: () => request<LanguageStatus>("/api/languages/cancel", post({})),
+
+  dataStatus: () => request<DataStatus>("/api/data/status"),
+  previewJob: (body: JobRequest, signal?: AbortSignal) =>
+    request<JobPreview>("/api/data/jobs/preview", post(body, signal)),
+  startJob: (body: JobRequest) => request<JobView>("/api/data/jobs", post(body)),
+  currentJob: () => request<JobView>("/api/data/jobs/current"),
+  cancelJob: () => request<JobView>("/api/data/jobs/cancel", post({})),
+  testSteamKey: () => request<{ ok: boolean; message: string }>("/api/data/test-key", post({})),
+
+  charts: (body: ChartsRequest, signal?: AbortSignal) =>
+    request<ChartsResponse>("/api/charts/overview", post(body, signal)),
+  gameHistory: (appid: number) => request<HistoryResponse2>(`/api/charts/history/${appid}`),
 
   artworkUrl: (appid: number) => `/api/games/${appid}/artwork`,
   exportJpeg: (appid: number, imageBase64: string) =>

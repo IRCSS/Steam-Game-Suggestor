@@ -4,7 +4,7 @@ from typing import Annotated, cast
 
 from fastapi import Depends, HTTPException, Path, Request
 
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 from app.schemas.games import SESSION_ID_PATTERN, GameReport
 from app.services import StudyService
 
@@ -18,14 +18,14 @@ Service = Annotated[StudyService, Depends(get_service)]
 SessionPath = Annotated[str, Path(pattern=SESSION_ID_PATTERN)]
 
 
-def require_game(service: StudyService, appid: int) -> LegacyGame:
+def require_game(service: StudyService, appid: int) -> Game:
     game = service.get_game(appid)
     if game is None:
         raise HTTPException(status_code=404, detail=f"AppID {appid} is not in the local database")
     return game
 
 
-def report(service: StudyService, game: LegacyGame) -> GameReport:
+def report(service: StudyService, game: Game) -> GameReport:
     return GameReport.from_game(
         game,
         service.settings.qualification_min_revenue_usd,

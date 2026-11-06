@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { META, VAMPIRE } from "../tests/fixtures";
+import { App } from "../App";
+import { Toast, useToast } from "../components/Toast";
 import { SuggestPage } from "./SuggestPage";
 
 type Handler = (url: string, init?: RequestInit) => unknown;
@@ -36,6 +38,17 @@ function sideEndpoint(url: string): unknown {
   if (url === "/api/studies") return { items: [], folder: "data/studies" };
   if (url === "/api/languages/status") return LANGUAGE_STATUS;
   return undefined;
+}
+
+/** The shell normally provides the toast; tests provide a minimal one. */
+function Harness({ sessionId }: { sessionId: string }) {
+  const toast = useToast();
+  return (
+    <>
+      <SuggestPage meta={META} notify={toast.show} sessionId={sessionId} />
+      <Toast message={toast.message} visible={toast.visible} />
+    </>
+  );
 }
 
 function mockFetch(handler: Handler) {
@@ -78,9 +91,8 @@ describe("SuggestPage", () => {
       if (url.includes("/history")) return { items: [summary] };
       throw new Error(`unexpected ${url}`);
     });
-    render(<SuggestPage meta={META} sessionId="test-session-1" />);
+    render(<Harness sessionId="test-session-1" />);
     expect(await screen.findByText("42 matches")).toBeInTheDocument();
-    expect(screen.getByText("3,704 qualified games")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Suggest a case study" }));
     expect(await screen.findByRole("heading", { name: "Vampire Survivors" })).toBeInTheDocument();
@@ -103,7 +115,7 @@ describe("SuggestPage", () => {
         return { status: "ok", game: VAMPIRE, repeat_history_reset: true, candidate_count: 3 };
       return { items: [summary] };
     });
-    render(<SuggestPage meta={META} sessionId="test-session-2" />);
+    render(<Harness sessionId="test-session-2" />);
     expect(await screen.findByText("All seen")).toBeInTheDocument();
     const button = screen.getByRole("button", { name: "Suggest a case study" });
     expect(button).toBeEnabled();
@@ -115,7 +127,7 @@ describe("SuggestPage", () => {
 
   it("disables suggesting with zero matches", async () => {
     mockFetch(() => ({ count: 0, count_ignoring_history: 0, all_seen: false }));
-    render(<SuggestPage meta={META} sessionId="test-session-3" />);
+    render(<Harness sessionId="test-session-3" />);
     expect(await screen.findByText("0 matches")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Suggest a case study" })).toBeDisabled();
   });
@@ -132,7 +144,7 @@ describe("SuggestPage", () => {
       if (url.includes("/views")) return { items: [summary] };
       throw new Error(`unexpected ${url}`);
     });
-    render(<SuggestPage meta={META} sessionId="test-session-4" />);
+    render(<Harness sessionId="test-session-4" />);
     const input = screen.getByLabelText("Game name or AppID");
     await userEvent.type(input, "nope{Enter}");
     expect(await screen.findByText("No matching game found.")).toBeInTheDocument();
@@ -146,7 +158,7 @@ describe("SuggestPage", () => {
 
   it("resets filters to defaults", async () => {
     const calls = mockFetch(() => ({ count: 1, count_ignoring_history: 1, all_seen: false }));
-    render(<SuggestPage meta={META} sessionId="test-session-5" />);
+    render(<Harness sessionId="test-session-5" />);
     const minRevenue = document.querySelector<HTMLInputElement>("#minRevenue")!;
     await userEvent.clear(minRevenue);
     await userEvent.type(minRevenue, "5");
@@ -172,7 +184,7 @@ describe("SuggestPage", () => {
       }
       throw new Error(`unexpected ${url}`);
     });
-    render(<SuggestPage meta={META} sessionId="test-session-6" />);
+    render(<Harness sessionId="test-session-6" />);
     await userEvent.type(screen.getByLabelText("Game name or AppID"), "1794680{Enter}");
     await userEvent.click(await screen.findByRole("button", { name: /Add to Studies/ }));
     expect(
@@ -184,7 +196,7 @@ describe("SuggestPage", () => {
     expect(countBody).toMatchObject({ exclude_studies: true, filters: { require_english: false } });
   });
 
-  it("opens Settings from the gear icon and saves", async () => {
+  it("renders the shell: badge, tabs, and Settings from the gear icon", async () => {
     const settings = {
       app_dir: "G:\\Tools\\SteamStudyTool",
       settings_file: "G:\\Tools\\SteamStudyTool\\settings.json",
@@ -194,6 +206,7 @@ describe("SuggestPage", () => {
       export_dir_resolved: "G:\\Tools\\SteamStudyTool\\studiesJPG",
       qualification_min_revenue_usd: 100000,
       offline_mode: false,
+      offline_forced: false,
       steam_api_key_set: false,
       steam_store_requests_per_minute: 35,
       llm_provider: "none",
@@ -201,20 +214,25 @@ describe("SuggestPage", () => {
       llm_api_key_set: false,
       warning: null,
     };
+    let metaCalls = 0;
     const calls = mockFetch((url, init) => {
+      if (url === "/api/meta") {
+        metaCalls += 1;
+        return META;
+      }
       if (url.endsWith("/count")) return { count: 5, count_ignoring_history: 5, all_seen: false };
       if (url === "/api/settings" && init?.method === "PUT")
         return { ...settings, qualification_min_revenue_usd: 120000 };
       if (url === "/api/settings") return settings;
       throw new Error(`unexpected ${url}`);
     });
-    let metaReloads = 0;
-    render(
-      <SuggestPage meta={META} sessionId="test-session-7" onMetaChanged={() => (metaReloads += 1)} />,
-    );
+    render(<App />);
+    expect(await screen.findByText("3,704 qualified games")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Suggest" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Suggest", "Charts", "Data"]);
+
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
     expect(await screen.findByText("G:\\Tools\\SteamStudyTool\\data")).toBeInTheDocument();
-    expect(screen.getByText(/known for/)).toBeInTheDocument();
     const floor = document.querySelector<HTMLInputElement>("#settingsFloor")!;
     await userEvent.clear(floor);
     await userEvent.type(floor, "120000");
@@ -222,12 +240,10 @@ describe("SuggestPage", () => {
     expect(await screen.findByText("Settings saved.")).toBeInTheDocument();
     const put = calls.find((c) => c.url === "/api/settings" && c.body);
     expect(put?.body).toMatchObject({
-      data_dir: "data",
-      export_dir: "studiesJPG",
       qualification_min_revenue_usd: 120000,
       steam_api_key: null,
       llm_api_key: null,
     });
-    expect(metaReloads).toBe(1);
+    await waitFor(() => expect(metaCalls).toBe(2)); // data changed -> meta reloaded
   });
 });

@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 from app.domain.filters import StudyFilters
 from app.domain.languages import LanguageRecord
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 from app.domain.revenue import LEGACY_MODEL_ID, LEGACY_MODEL_LABEL, usd_to_minor_units
-from app.importer import LEGACY_PRICE_CONTEXT, LEGACY_SOURCE
+from app.importer import LEGACY_SOURCE
 from app.storage.studies import Study
 
 SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
@@ -38,11 +38,24 @@ class RevenueEstimate(BaseModel):
 
 
 class LegacyRank(BaseModel):
+    """Yearly rank over the local catalog (equals the imported legacy rank until data changes)."""
+
     rank: int
     population_count: int
     percentile: float
     population: str
     scope_label: str
+    legacy_rank: int | None = None  # as imported (None for games discovered later)
+    legacy_population_count: int | None = None
+
+
+class Provenance(BaseModel):
+    data_source: Literal["legacy_import", "steam", "steam_new"]
+    reviews_observed_at: str | None
+    store_observed_at: str | None
+    tags_observed_at: str | None
+    tags_source: str
+    release_date: str | None
 
 
 class Qualification(BaseModel):
@@ -89,11 +102,12 @@ class GameReport(BaseModel):
     steam_url: str
     languages: LanguageInfo
     study: StudyState
+    provenance: Provenance
 
     @classmethod
     def from_game(
         cls,
-        game: LegacyGame,
+        game: Game,
         threshold_usd: int,
         language: LanguageRecord | None = None,
         study: Study | None = None,
@@ -107,13 +121,15 @@ class GameReport(BaseModel):
             price=Money(
                 amount_minor=usd_to_minor_units(game.price),
                 currency_code="USD",
-                context=LEGACY_PRICE_CONTEXT,
+                context=game.price_context,
             ),
             reviews=Reviews(
                 total=game.total_reviews,
                 positive_percent=game.review_score,
-                observed_at=None,
-                source=LEGACY_SOURCE,
+                observed_at=game.reviews_observed_at,
+                source=LEGACY_SOURCE
+                if game.reviews_observed_at is None
+                else "steam_reviews_all_languages",
             ),
             estimated_revenue=RevenueEstimate(
                 amount_minor=game.estimated_revenue * 100,
@@ -125,13 +141,32 @@ class GameReport(BaseModel):
                 rank=game.revenue_rank_in_year,
                 population_count=game.qualifying_games_in_year,
                 percentile=game.revenue_percentile_in_year,
-                population=game.legacy_population,
-                scope_label=f"legacy dataset, {game.release_year} releases",
+                population=game.rank_population,
+                scope_label=(
+                    f"legacy dataset, {game.release_year} releases"
+                    if (game.revenue_rank_in_year, game.qualifying_games_in_year)
+                    == (game.legacy_rank_in_year, game.legacy_qualifying_games_in_year)
+                    else f"local catalog, {game.release_year} releases"
+                ),
+                legacy_rank=game.legacy_rank_in_year,
+                legacy_population_count=game.legacy_qualifying_games_in_year,
+            ),
+            provenance=Provenance(
+                data_source=game.data_source,  # type: ignore[arg-type]
+                reviews_observed_at=game.reviews_observed_at,
+                store_observed_at=game.store_observed_at,
+                tags_observed_at=game.tags_observed_at,
+                tags_source=game.tags_source,
+                release_date=game.release_date,
             ),
             qualification=Qualification(
                 qualified=game.estimated_revenue >= threshold_usd, threshold_usd=threshold_usd
             ),
-            freshness="imported_legacy_unknown_age",
+            freshness=(
+                "imported_legacy_unknown_age"
+                if game.reviews_observed_at is None
+                else f"reviews_as_of_{game.reviews_observed_at[:10]}"
+            ),
             steam_url=f"https://store.steampowered.com/app/{game.appid}",
             languages=LanguageInfo.from_record(language),
             study=StudyState(
@@ -150,7 +185,7 @@ class GameSummary(BaseModel):
     legacy_rank_in_year: int
 
     @classmethod
-    def from_game(cls, game: LegacyGame) -> GameSummary:
+    def from_game(cls, game: Game) -> GameSummary:
         return cls(
             appid=game.appid,
             name=game.name,

@@ -51,6 +51,24 @@ dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the win
 - `dist/` and `build/` are git-ignored. `build.bat --no-pause` (or `npm run build-desktop`) is for
   terminal and CI use.
 
+### The three tabs (0.3)
+- **Suggest**: filters, random suggestions, game report (with when and where each number was
+  observed), Add to Studies, Get more info from LLM (table only for now), Export as JPG.
+- **Charts**: revenue distribution, games per year, price vs revenue (Studies highlighted; click a
+  dot to open the game), tags by median revenue, review count vs score, and the selected game's
+  review history. Scope: the qualified catalog by year, or the Suggest tab's filters. Every chart
+  has a table view.
+- **Data**: update the dataset from Steam, with an estimate of requests and time before you start:
+  - update existing games (default: qualified games, reviews and store info, skip if updated
+    within 7 days; choose years, scope and parts);
+  - add new games (AppIDs after the newest known; **needs a free Steam Web API key**, set in
+    Settings);
+  - look up languages;
+  - update one AppID.
+
+  Jobs run in the background, can be stopped, and continue where they left off. Results are
+  shared through the data folder with every PC.
+
 ### Features added in 0.2
 - **Must support English** filter. Languages come from a one-time, user-started lookup against the
   Steam store (Settings -> Languages; ~35 requests/minute, resumable, shared by all PCs). Games not

@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 DEFAULT_MIN_REVENUE_USD = 100_000
 
@@ -21,13 +21,13 @@ class CatalogPolicy:
     include_below_threshold: bool = False
 
 
-def is_qualified(game: LegacyGame, policy: CatalogPolicy) -> bool:
+def is_qualified(game: Game, policy: CatalogPolicy) -> bool:
     # Legacy price-0 games carry estimated_revenue 0; they are below the floor, which is NOT a
     # claim that they earned nothing (F2P income is unknown). See docs/revenue-model.md.
     return game.estimated_revenue >= policy.min_estimated_revenue_usd
 
 
-def qualify(games: Iterable[LegacyGame], policy: CatalogPolicy) -> list[LegacyGame]:
+def qualify(games: Iterable[Game], policy: CatalogPolicy) -> list[Game]:
     if policy.include_below_threshold:
         return list(games)
     return [g for g in games if is_qualified(g, policy)]

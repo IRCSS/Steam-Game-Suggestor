@@ -23,6 +23,11 @@
 - `build.bat` must keep `settings.json`, `data\`, `studiesJPG\` in `dist\SteamStudyTool` (USER_ENTRIES in `scripts/build_desktop.py`).
 - Anything the packaged app needs at runtime (SQL migrations, UI, seed DB) must be added in `scripts/build_desktop.py`.
 
+## Data sync
+
+- Data jobs only append observations (`backend/app/storage/observations.py`); the catalog is overlaid in memory (`domain/observations.py`) and ranked with the verified legacy rule (`domain/ranks.py`). Never write the catalog DB at runtime.
+- Steam reviews MUST request `languages: ["all"]` (otherwise English-only totals). Tests use `backend/tests/fake_steam.py`; never call Steam from tests.
+
 ## Environment notes (Windows dev machine)
 
 - Shell PATH may lack the new tools in an old session. uv is installed via winget; Python 3.12 is at `%LOCALAPPDATA%\Programs\Python\Python312`; Node is at `C:\Program Files\nodejs`.

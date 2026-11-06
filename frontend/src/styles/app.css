@@ -353,3 +353,328 @@ code {
     display: block;
   }
 }
+
+/* --- Tabs -------------------------------------------------------------------------------- */
+
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  margin: -6px 0 22px;
+  padding: 5px;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.tab {
+  min-height: 40px;
+  padding: 0 22px;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 750;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab.active {
+  color: #03111a;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+}
+
+/* --- Shared bits ------------------------------------------------------------------------- */
+
+.stat-tile .metric-value {
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.stat-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--subtle);
+}
+
+.data-stats {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-bottom: 18px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 8px 0 4px;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #0d141f;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.chip.static {
+  cursor: default;
+}
+
+.chip-hint {
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+.chart-filters .inline-number {
+  width: 80px;
+  max-width: 80px;
+  flex: none;
+  min-height: 34px;
+  margin-left: 8px;
+}
+
+/* --- Data tab ---------------------------------------------------------------------------- */
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.data-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+}
+
+.data-card-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.data-options {
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.data-options .settings-check {
+  margin-top: 8px;
+}
+
+.data-options .input-caption {
+  display: block;
+  margin-top: 14px;
+}
+
+.settings-field.narrow input {
+  max-width: 160px;
+}
+
+.data-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.data-card-footer input {
+  flex: 1 1 160px;
+}
+
+.data-estimate {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.job-panel {
+  margin-bottom: 18px;
+  padding: 20px 22px;
+}
+
+.job-panel h2 {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.job-state {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: #0d141f;
+  border-radius: 999px;
+}
+
+.job-state.running {
+  color: var(--accent);
+}
+
+.job-state.completed {
+  color: var(--green);
+}
+
+.job-state.failed {
+  color: var(--danger);
+}
+
+.job-log {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+.job-log ol {
+  max-height: 180px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  overflow-y: auto;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.data-footnote {
+  margin-top: 18px;
+}
+
+/* --- Charts tab -------------------------------------------------------------------------- */
+
+.chart-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 14px 20px;
+}
+
+.chart-filters .settings-check {
+  margin-top: 0;
+}
+
+.charts-body {
+  transition: opacity 0.2s ease;
+}
+
+.charts-body.refetching {
+  opacity: 0.55; /* hold the previous render while refetching - no skeleton flash */
+}
+
+.chart-scope {
+  margin: 0 0 16px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.chart-card {
+  min-width: 0;
+  padding: 20px 20px 14px;
+}
+
+.chart-card.wide {
+  grid-column: 1 / -1;
+}
+
+.chart-card-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.chart-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+.chart-table-toggle {
+  min-height: 34px;
+  flex: none;
+}
+
+.chart-table-wrap {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.chart-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tooltip {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  background: #0d141f;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.chart-tooltip-title {
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.chart-tooltip-row strong {
+  color: var(--text);
+}
+
+.recharts-legend-item-text {
+  color: var(--muted) !important;
+}
+
+@media (max-width: 1050px) {
+  .data-grid,
+  .chart-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .tab-bar {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 0 10px;
+  }
+}

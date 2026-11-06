@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 from typing import cast
 
@@ -34,6 +35,7 @@ def _view(service: StudyService, content: SettingsFile) -> SettingsView:
         export_dir_resolved=str(s.export_dir),
         qualification_min_revenue_usd=content.qualification_min_revenue_usd,
         offline_mode=content.offline_mode,
+        offline_forced=os.environ.get("STEAM_STUDY_OFFLINE") == "1",
         steam_api_key_set=bool(content.steam.api_key),
         steam_store_requests_per_minute=content.steam.store_requests_per_minute,
         llm_provider=content.llm.provider,
@@ -68,8 +70,8 @@ def update_settings(request: Request, service: Service, body: SettingsUpdate) ->
 
     new_settings = settings_from_file(app_dir, updated)
     data_changed = new_settings.data_dir.resolve() != service.settings.data_dir.resolve()
-    if data_changed and service.language_job.running:
-        raise HTTPException(409, "Stop the language lookup before changing the data folder.")
+    if data_changed and service.jobs.running:
+        raise HTTPException(409, "Stop the running data job before changing the data folder.")
     if data_changed:
         try:
             new_settings.data_dir.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steam Study Tool API",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "paths": {
     "/api/health": {
@@ -523,70 +523,8 @@
         "tags": [
           "languages"
         ],
-        "summary": "Language Status",
-        "operationId": "language_status_api_languages_status_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LanguageStatusResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/languages/fetch": {
-      "post": {
-        "tags": [
-          "languages"
-        ],
-        "summary": "Start Fetch",
-        "operationId": "start_fetch_api_languages_fetch_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LanguageFetchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LanguageStatusResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/languages/cancel": {
-      "post": {
-        "tags": [
-          "languages"
-        ],
-        "summary": "Cancel Fetch",
-        "operationId": "cancel_fetch_api_languages_cancel_post",
+        "summary": "Get Language Status",
+        "operationId": "get_language_status_api_languages_status_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -772,10 +710,511 @@
           }
         }
       }
+    },
+    "/api/data/status": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Data Status",
+        "operationId": "data_status_api_data_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/jobs/preview": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Preview Job",
+        "operationId": "preview_job_api_data_jobs_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/jobs": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Start Job",
+        "operationId": "start_job_api_data_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/jobs/current": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Current Job",
+        "operationId": "current_job_api_data_jobs_current_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/jobs/cancel": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Cancel Job",
+        "operationId": "cancel_job_api_data_jobs_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data/test-key": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Test Key",
+        "description": "One request to Steam's app list to check the configured Web API key.",
+        "operationId": "test_key_api_data_test_key_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyTestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/charts/overview": {
+      "post": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "Overview",
+        "operationId": "overview_api_charts_overview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/charts/history/{appid}": {
+      "get": {
+        "tags": [
+          "charts"
+        ],
+        "summary": "History",
+        "description": "Review/revenue snapshots for one game: the legacy import (date unknown) plus every\nSteam refresh. Fewer than two dated points means there is no trend to show yet.",
+        "operationId": "history_api_charts_history__appid__get",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryResponseModel"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ChartBin": {
+        "properties": {
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "count"
+        ],
+        "title": "ChartBin"
+      },
+      "ChartPoint": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "revenue": {
+            "type": "integer",
+            "title": "Revenue"
+          },
+          "reviews": {
+            "type": "integer",
+            "title": "Reviews"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "in_studies": {
+            "type": "boolean",
+            "title": "In Studies"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "name",
+          "year",
+          "price",
+          "revenue",
+          "reviews",
+          "score",
+          "in_studies"
+        ],
+        "title": "ChartPoint"
+      },
+      "ChartTag": {
+        "properties": {
+          "tag": {
+            "type": "string",
+            "title": "Tag"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "median_revenue": {
+            "type": "number",
+            "title": "Median Revenue"
+          },
+          "median_reviews": {
+            "type": "number",
+            "title": "Median Reviews"
+          },
+          "median_score": {
+            "type": "number",
+            "title": "Median Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tag",
+          "count",
+          "median_revenue",
+          "median_reviews",
+          "median_score"
+        ],
+        "title": "ChartTag"
+      },
+      "ChartYear": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "median_revenue": {
+            "type": "number",
+            "title": "Median Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "year",
+          "count",
+          "median_revenue"
+        ],
+        "title": "ChartYear"
+      },
+      "ChartsRequest": {
+        "properties": {
+          "use_study_filters": {
+            "type": "boolean",
+            "title": "Use Study Filters",
+            "default": false
+          },
+          "filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudyFiltersModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "include_below_threshold": {
+            "type": "boolean",
+            "title": "Include Below Threshold",
+            "default": false
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "min_tag_count": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Min Tag Count",
+            "default": 20
+          },
+          "tag_limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Tag Limit",
+            "default": 20
+          }
+        },
+        "type": "object",
+        "title": "ChartsRequest"
+      },
+      "ChartsResponse": {
+        "properties": {
+          "scope_label": {
+            "type": "string",
+            "title": "Scope Label"
+          },
+          "as_of": {
+            "type": "string",
+            "title": "As Of"
+          },
+          "catalog_total": {
+            "type": "integer",
+            "title": "Catalog Total"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/KpiView"
+          },
+          "revenue_bins": {
+            "items": {
+              "$ref": "#/components/schemas/ChartBin"
+            },
+            "type": "array",
+            "title": "Revenue Bins"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ChartPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "points_total": {
+            "type": "integer",
+            "title": "Points Total"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/ChartTag"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/ChartYear"
+            },
+            "type": "array",
+            "title": "Years"
+          },
+          "revenue_model": {
+            "type": "string",
+            "title": "Revenue Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope_label",
+          "as_of",
+          "catalog_total",
+          "kpis",
+          "revenue_bins",
+          "points",
+          "points_total",
+          "tags",
+          "years",
+          "revenue_model"
+        ],
+        "title": "ChartsResponse"
+      },
       "CountResponse": {
         "properties": {
           "count": {
@@ -798,6 +1237,114 @@
           "all_seen"
         ],
         "title": "CountResponse"
+      },
+      "DataStatus": {
+        "properties": {
+          "data_dir": {
+            "type": "string",
+            "title": "Data Dir"
+          },
+          "total_games": {
+            "type": "integer",
+            "title": "Total Games"
+          },
+          "qualified_games": {
+            "type": "integer",
+            "title": "Qualified Games"
+          },
+          "legacy_unchanged": {
+            "type": "integer",
+            "title": "Legacy Unchanged"
+          },
+          "refreshed": {
+            "type": "integer",
+            "title": "Refreshed"
+          },
+          "discovered": {
+            "type": "integer",
+            "title": "Discovered"
+          },
+          "years": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Years"
+          },
+          "last_update": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Update"
+          },
+          "discovery_cursor_appid": {
+            "type": "integer",
+            "title": "Discovery Cursor Appid"
+          },
+          "listed_not_screened": {
+            "type": "integer",
+            "title": "Listed Not Screened"
+          },
+          "languages_known": {
+            "type": "integer",
+            "title": "Languages Known"
+          },
+          "steam_api_key_set": {
+            "type": "boolean",
+            "title": "Steam Api Key Set"
+          },
+          "offline": {
+            "type": "boolean",
+            "title": "Offline"
+          },
+          "qualification_threshold_usd": {
+            "type": "integer",
+            "title": "Qualification Threshold Usd"
+          },
+          "observation_files": {
+            "items": {
+              "$ref": "#/components/schemas/ShardInfo"
+            },
+            "type": "array",
+            "title": "Observation Files"
+          },
+          "seconds_per_request": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Seconds Per Request"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data_dir",
+          "total_games",
+          "qualified_games",
+          "legacy_unchanged",
+          "refreshed",
+          "discovered",
+          "years",
+          "last_update",
+          "discovery_cursor_appid",
+          "listed_not_screened",
+          "languages_known",
+          "steam_api_key_set",
+          "offline",
+          "qualification_threshold_usd",
+          "observation_files",
+          "seconds_per_request",
+          "job"
+        ],
+        "title": "DataStatus"
       },
       "DatasetInfo": {
         "properties": {
@@ -869,6 +1416,36 @@
         ],
         "title": "DatasetInfo"
       },
+      "DiscoverOptions": {
+        "properties": {
+          "max_new": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Max New",
+            "default": 500
+          },
+          "fetch_tags": {
+            "type": "boolean",
+            "title": "Fetch Tags",
+            "default": true
+          },
+          "min_revenue_usd": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Revenue Usd"
+          }
+        },
+        "type": "object",
+        "title": "DiscoverOptions"
+      },
       "GameReport": {
         "properties": {
           "appid": {
@@ -922,6 +1499,9 @@
           },
           "study": {
             "$ref": "#/components/schemas/StudyState"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/Provenance"
           }
         },
         "type": "object",
@@ -939,7 +1519,8 @@
           "freshness",
           "steam_url",
           "languages",
-          "study"
+          "study",
+          "provenance"
         ],
         "title": "GameReport"
       },
@@ -1048,6 +1629,41 @@
         ],
         "title": "HealthResponse"
       },
+      "HistoryPoint": {
+        "properties": {
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "total_reviews": {
+            "type": "integer",
+            "title": "Total Reviews"
+          },
+          "estimated_revenue": {
+            "type": "integer",
+            "title": "Estimated Revenue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "observed_at",
+          "source",
+          "total_reviews",
+          "estimated_revenue"
+        ],
+        "title": "HistoryPoint"
+      },
       "HistoryResponse": {
         "properties": {
           "items": {
@@ -1063,6 +1679,243 @@
           "items"
         ],
         "title": "HistoryResponse"
+      },
+      "HistoryResponseModel": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "enough_history": {
+            "type": "boolean",
+            "title": "Enough History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "name",
+          "points",
+          "enough_history"
+        ],
+        "title": "HistoryResponseModel"
+      },
+      "JobPreview": {
+        "properties": {
+          "items": {
+            "type": "integer",
+            "title": "Items"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "seconds": {
+            "type": "number",
+            "title": "Seconds"
+          },
+          "needs_key": {
+            "type": "boolean",
+            "title": "Needs Key"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "requests",
+          "seconds",
+          "needs_key",
+          "notes"
+        ],
+        "title": "JobPreview"
+      },
+      "JobRequest": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "refresh",
+              "discover",
+              "languages",
+              "app"
+            ],
+            "title": "Kind"
+          },
+          "refresh": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefreshOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "discover": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscoverOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "appid": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appid"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "JobRequest"
+      },
+      "JobView": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "completed",
+              "cancelled",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "counters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counters"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "eta_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta Seconds"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "recent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "kind",
+          "label",
+          "state",
+          "total",
+          "done",
+          "counters",
+          "requests",
+          "started_at",
+          "finished_at",
+          "eta_seconds",
+          "message",
+          "recent"
+        ],
+        "title": "JobView"
       },
       "JpegExportRequest": {
         "properties": {
@@ -1106,20 +1959,84 @@
         ],
         "title": "JpegExportResponse"
       },
-      "LanguageFetchRequest": {
+      "KeyTestResult": {
         "properties": {
-          "scope": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "message": {
             "type": "string",
-            "enum": [
-              "qualified",
-              "all"
-            ],
-            "title": "Scope",
-            "default": "qualified"
+            "title": "Message"
           }
         },
         "type": "object",
-        "title": "LanguageFetchRequest"
+        "required": [
+          "ok",
+          "message"
+        ],
+        "title": "KeyTestResult"
+      },
+      "KpiView": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "median_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Revenue"
+          },
+          "median_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Price"
+          },
+          "median_reviews": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Reviews"
+          },
+          "median_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "median_revenue",
+          "median_price",
+          "median_reviews",
+          "median_score"
+        ],
+        "title": "KpiView"
       },
       "LanguageInfo": {
         "properties": {
@@ -1171,103 +2088,6 @@
         ],
         "title": "LanguageInfo"
       },
-      "LanguageJobView": {
-        "properties": {
-          "state": {
-            "type": "string",
-            "enum": [
-              "idle",
-              "running",
-              "completed",
-              "cancelled",
-              "failed"
-            ],
-            "title": "State"
-          },
-          "scope": {
-            "type": "string",
-            "title": "Scope"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          },
-          "done": {
-            "type": "integer",
-            "title": "Done"
-          },
-          "found": {
-            "type": "integer",
-            "title": "Found"
-          },
-          "unavailable": {
-            "type": "integer",
-            "title": "Unavailable"
-          },
-          "errors": {
-            "type": "integer",
-            "title": "Errors"
-          },
-          "skipped": {
-            "type": "integer",
-            "title": "Skipped"
-          },
-          "started_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started At"
-          },
-          "finished_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finished At"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "recent": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Recent"
-          },
-          "seconds_per_request": {
-            "type": "number",
-            "title": "Seconds Per Request"
-          }
-        },
-        "type": "object",
-        "required": [
-          "state",
-          "scope",
-          "total",
-          "done",
-          "found",
-          "unavailable",
-          "errors",
-          "skipped",
-          "started_at",
-          "finished_at",
-          "message",
-          "recent",
-          "seconds_per_request"
-        ],
-        "title": "LanguageJobView"
-      },
       "LanguageStatusResponse": {
         "properties": {
           "total_games": {
@@ -1301,9 +2121,6 @@
           "offline": {
             "type": "boolean",
             "title": "Offline"
-          },
-          "job": {
-            "$ref": "#/components/schemas/LanguageJobView"
           }
         },
         "type": "object",
@@ -1315,8 +2132,7 @@
           "english",
           "no_english",
           "unavailable",
-          "offline",
-          "job"
+          "offline"
         ],
         "title": "LanguageStatusResponse"
       },
@@ -1341,6 +2157,28 @@
           "scope_label": {
             "type": "string",
             "title": "Scope Label"
+          },
+          "legacy_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Rank"
+          },
+          "legacy_population_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legacy Population Count"
           }
         },
         "type": "object",
@@ -1351,7 +2189,8 @@
           "population",
           "scope_label"
         ],
-        "title": "LegacyRank"
+        "title": "LegacyRank",
+        "description": "Yearly rank over the local catalog (equals the imported legacy rank until data changes)."
       },
       "MetaResponse": {
         "properties": {
@@ -1431,6 +2270,77 @@
         ],
         "title": "OpenFolderRequest"
       },
+      "Provenance": {
+        "properties": {
+          "data_source": {
+            "type": "string",
+            "enum": [
+              "legacy_import",
+              "steam",
+              "steam_new"
+            ],
+            "title": "Data Source"
+          },
+          "reviews_observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviews Observed At"
+          },
+          "store_observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Observed At"
+          },
+          "tags_observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags Observed At"
+          },
+          "tags_source": {
+            "type": "string",
+            "title": "Tags Source"
+          },
+          "release_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data_source",
+          "reviews_observed_at",
+          "store_observed_at",
+          "tags_observed_at",
+          "tags_source",
+          "release_date"
+        ],
+        "title": "Provenance"
+      },
       "Qualification": {
         "properties": {
           "qualified": {
@@ -1448,6 +2358,80 @@
           "threshold_usd"
         ],
         "title": "Qualification"
+      },
+      "RefreshOptions": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "qualified",
+              "all",
+              "studies"
+            ],
+            "title": "Scope",
+            "default": "qualified"
+          },
+          "years": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Years",
+            "description": "Empty = all years"
+          },
+          "min_revenue_usd": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Revenue Usd",
+            "description": "None = catalog floor"
+          },
+          "parts": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "reviews",
+                "store",
+                "tags"
+              ]
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Parts"
+          },
+          "stale_days": {
+            "type": "integer",
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Stale Days",
+            "default": 7
+          },
+          "only_missing_languages": {
+            "type": "boolean",
+            "title": "Only Missing Languages",
+            "default": false
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "title": "RefreshOptions"
       },
       "RevenueEstimate": {
         "properties": {
@@ -1627,6 +2611,10 @@
             "type": "boolean",
             "title": "Offline Mode"
           },
+          "offline_forced": {
+            "type": "boolean",
+            "title": "Offline Forced"
+          },
           "steam_api_key_set": {
             "type": "boolean",
             "title": "Steam Api Key Set"
@@ -1674,6 +2662,7 @@
           "export_dir_resolved",
           "qualification_min_revenue_usd",
           "offline_mode",
+          "offline_forced",
           "steam_api_key_set",
           "steam_store_requests_per_minute",
           "llm_provider",
@@ -1683,6 +2672,24 @@
         ],
         "title": "SettingsView",
         "description": "What the Settings dialog shows. Secrets are never returned - only whether they are set."
+      },
+      "ShardInfo": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "bytes"
+        ],
+        "title": "ShardInfo"
       },
       "StudiesResponse": {
         "properties": {

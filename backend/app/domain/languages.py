@@ -13,7 +13,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from app.domain.models import LegacyGame
+from app.domain.models import Game
 
 LanguageStatus = Literal["ok", "unavailable"]
 _TAG = re.compile(r"<[^>]+>")
@@ -67,7 +67,7 @@ def english_flags(records: Mapping[int, LanguageRecord]) -> dict[int, bool]:
     return flags
 
 
-def exclude_non_english(games: Iterable[LegacyGame], flags: Mapping[int, bool]) -> list[LegacyGame]:
+def exclude_non_english(games: Iterable[Game], flags: Mapping[int, bool]) -> list[Game]:
     """Drop games KNOWN to have no English support. Unknown games are kept (and labelled in the
     UI) - a missing lookup is not evidence of missing English."""
     return [g for g in games if flags.get(g.appid, True)]
