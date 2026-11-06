@@ -18,7 +18,26 @@ Everything runs offline. No Steam API key or AI key is needed, and nothing calls
 
 On Windows: `winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS.LTS`
 
-## Setup and run
+## Desktop app (the build to test)
+
+Double-click **`build.bat`** in the repo root. It installs dependencies, builds the UI, imports
+and verifies the dataset, packages everything with PyInstaller, and self-tests the result
+(about 2 minutes). Output:
+
+```
+dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the window to quit
+```
+
+- No terminal, server or browser needed: the exe starts the local server on a free localhost
+  port and opens the app in its own window (Edge WebView2, preinstalled on Windows 10/11). If
+  WebView2 is missing, it falls back to the default browser.
+- Your data lives in `%LOCALAPPDATA%\SteamStudyTool` (database, logs, `launcher.log`). It is
+  kept across rebuilds. Delete that folder to start fresh.
+- `dist/` and `build/` are git-ignored. The `dist\SteamStudyTool` folder can be copied or zipped
+  as a whole to another Windows PC.
+- `build.bat --no-pause` (or `npm run build-desktop`) is for terminal and CI use.
+
+## Setup and run (development)
 
 ```bash
 npm run setup          # uv sync + npm ci (root and frontend) + Playwright Chromium

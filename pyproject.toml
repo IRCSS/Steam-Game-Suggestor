@@ -26,7 +26,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["backend", "scripts"]
+src = ["backend", "scripts", "desktop"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
@@ -47,6 +47,10 @@ reportUnknownVariableType = false
 reportUnknownArgumentType = false
 
 [dependency-groups]
+desktop = [
+    "pyinstaller>=6.22.3",
+    "pywebview>=6.2.1",
+]
 dev = [
     "httpx>=0.28.1",
     "pyright>=1.1.414",

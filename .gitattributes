@@ -1,5 +1,7 @@
 * text=auto eol=lf
 *.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
 # Keep the legacy reference byte-for-byte identical (SHA-256 is verified in tests).
 # Must come AFTER the catch-all rule: later lines win in .gitattributes.
 reference/steam_game_suggester.html -text binary

@@ -7,6 +7,7 @@ server, and never returned by any API route.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -46,7 +47,8 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    _load_dotenv(REPO_ROOT / ".env")
+    if not getattr(sys, "frozen", False):  # packaged app is configured by its launcher only
+        _load_dotenv(REPO_ROOT / ".env")
     return Settings(
         db_path=_resolve(os.environ.get("STEAM_STUDY_DB"), DEFAULT_DB_PATH),
         log_dir=_resolve(os.environ.get("STEAM_STUDY_LOG_DIR"), DEFAULT_LOG_DIR),

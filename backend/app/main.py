@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import mimetypes
+import os
 import time
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request, Response
@@ -18,7 +21,28 @@ from app.logging_config import configure_logging, get_logger
 from app.services import StudyService
 
 log = get_logger("http")
-FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"
+
+
+def register_web_mimetypes() -> None:
+    """Python's mimetypes reads the Windows registry, which on many machines maps .js to
+    text/plain. Browsers refuse to run <script type="module"> served as text/plain (the packaged
+    app showed a blank window), so pin the web types every time an app is created."""
+    for type_, ext in (
+        ("text/javascript", ".js"),
+        ("text/javascript", ".mjs"),
+        ("text/css", ".css"),
+        ("image/svg+xml", ".svg"),
+        ("application/json", ".json"),
+    ):
+        mimetypes.add_type(type_, ext)
+
+
+def _frontend_dist() -> Path:
+    # The packaged desktop app points this at its bundled copy of the built UI.
+    override = os.environ.get("STEAM_STUDY_FRONTEND_DIST")
+    return Path(override) if override else REPO_ROOT / "frontend" / "dist"
+
+
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]", "::1"}
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
@@ -33,6 +57,7 @@ def _is_local_origin(origin: str) -> bool:
 def create_app(settings: Settings | None = None, service: StudyService | None = None) -> FastAPI:
     settings = settings or load_settings()
     configure_logging(settings.log_dir)
+    register_web_mimetypes()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -74,6 +99,7 @@ def create_app(settings: Settings | None = None, service: StudyService | None = 
     app.include_router(suggestions.router)
 
     # Serve the built UI from the same origin when available (`npm run build` first).
+    FRONTEND_DIST = _frontend_dist()
     if (FRONTEND_DIST / "index.html").is_file():
         app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 

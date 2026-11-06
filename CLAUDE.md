@@ -16,6 +16,12 @@
 - Keep user notes, study status and human-verified research immutable across refresh/import jobs.
 - Report changed files, passed/failed checks, known limitations and next actions after each phase.
 
+## Desktop build
+
+- `build.bat` (repo root) produces `dist/SteamStudyTool/SteamStudyTool.exe` (git-ignored). It must self-test (`--smoke-test`) green; see `docs/decisions/0002-desktop-build.md`.
+- User data lives in `%LOCALAPPDATA%\SteamStudyTool`; never store state in the build folder.
+- Anything the packaged app needs at runtime (SQL migrations, UI, seed DB) must be added in `scripts/build_desktop.py`.
+
 ## Environment notes (Windows dev machine)
 
 - Shell PATH may lack the new tools in an old session. uv is installed via winget; Python 3.12 is at `%LOCALAPPDATA%\Programs\Python\Python312`; Node is at `C:\Program Files\nodejs`.
