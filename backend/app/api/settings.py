@@ -17,6 +17,7 @@ from app.config import (
     write_settings_file,
 )
 from app.logging_config import get_logger
+from app.research.claude_cli import find_claude_cli
 from app.schemas.app import SettingsUpdate, SettingsView
 from app.services import StudyService
 
@@ -41,6 +42,17 @@ def _view(service: StudyService, content: SettingsFile) -> SettingsView:
         llm_provider=content.llm.provider,
         llm_model=content.llm.model,
         llm_api_key_set=bool(content.llm.api_key),
+        claude_cli_path=content.llm.claude_cli_path,
+        claude_cli_detected=str(cli)
+        if (cli := find_claude_cli(content.llm.claude_cli_path))
+        else None,
+        llm_max_budget_usd=content.llm.max_budget_usd,
+        llm_timeout_minutes=content.llm.timeout_minutes,
+        salary_per_person_year=content.cost_model.salary_per_person_year,
+        salary_currency=content.cost_model.salary_currency,
+        usd_per_salary_unit=content.cost_model.usd_per_salary_unit,
+        comparison_team_size=content.cost_model.comparison_team_size,
+        platform_cut_percent=round(content.cost_model.platform_cut * 100, 2),
         warning=s.warning,
     )
 
@@ -63,6 +75,14 @@ def update_settings(request: Request, service: Service, body: SettingsUpdate) ->
     updated.steam.store_requests_per_minute = body.steam_store_requests_per_minute
     updated.llm.provider = body.llm_provider
     updated.llm.model = body.llm_model.strip()
+    updated.llm.claude_cli_path = body.claude_cli_path.strip()
+    updated.llm.max_budget_usd = body.llm_max_budget_usd
+    updated.llm.timeout_minutes = body.llm_timeout_minutes
+    updated.cost_model.salary_per_person_year = body.salary_per_person_year
+    updated.cost_model.salary_currency = body.salary_currency.strip().upper()
+    updated.cost_model.usd_per_salary_unit = body.usd_per_salary_unit
+    updated.cost_model.comparison_team_size = body.comparison_team_size
+    updated.cost_model.platform_cut = body.platform_cut_percent / 100
     if body.steam_api_key is not None:
         updated.steam.api_key = body.steam_api_key.strip()
     if body.llm_api_key is not None:
@@ -70,7 +90,7 @@ def update_settings(request: Request, service: Service, body: SettingsUpdate) ->
 
     new_settings = settings_from_file(app_dir, updated)
     data_changed = new_settings.data_dir.resolve() != service.settings.data_dir.resolve()
-    if data_changed and service.jobs.running:
+    if data_changed and (service.jobs.running or service.research_jobs.running):
         raise HTTPException(409, "Stop the running data job before changing the data folder.")
     if data_changed:
         try:

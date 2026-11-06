@@ -686,3 +686,163 @@ code {
     padding: 0 10px;
   }
 }
+
+/* --- LLM research ------------------------------------------------------------------------ */
+
+.research-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.research-head .ghost-button {
+  min-height: 34px;
+}
+
+.research-table td {
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.research-table td:first-child {
+  color: var(--muted);
+  font-weight: 650;
+  width: 22%;
+}
+
+.research-value {
+  color: var(--text);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.research-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.research-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+  font-size: 0.78rem;
+}
+
+.research-sources a {
+  color: var(--accent);
+}
+
+/* Confidence always shows its word; color only reinforces it. */
+.conf-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.conf-high {
+  color: var(--green);
+}
+
+.conf-medium {
+  color: var(--accent);
+}
+
+.conf-low {
+  color: #fab219;
+}
+
+.conf-unknown {
+  color: var(--subtle);
+}
+
+.research-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 20px;
+}
+
+.research-insights-title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.research-insights ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.research-insights li {
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.research-evidence {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.research-meta {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--subtle);
+}
+
+.research-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.progress-bar.indeterminate {
+  width: 35%;
+  animation: progress-slide 1.6s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar.indeterminate {
+    width: 100%;
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
+.export-research {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.export-research .research-insights {
+  margin-top: 16px;
+}
+
+@media (max-width: 700px) {
+  .research-insights {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .research-value {
+    white-space: normal;
+  }
+}

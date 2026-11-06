@@ -73,12 +73,15 @@ test("Export as JPG writes a compact image to studiesJPG", async ({ page, consol
   expect(consoleErrors.filter((e) => !e.includes("status of 404"))).toEqual([]);
 });
 
-test("Get more info from LLM shows the (empty) research table", async ({ page }) => {
+test("Get more info from LLM explains why research cannot run (offline)", async ({ page }) => {
   await page.goto("/");
-  await loadGame(page, String(VAMPIRE));
-  await expect(page.getByTestId("research-panel")).toHaveCount(0);
+  await settledCount(page);
+  await page.locator("#suggestButton").click(); // default segment: never Vampire Survivors
+  await expect(page.locator("#gameTitle")).not.toBeEmpty();
+  await expect(page.getByTestId("research-panel")).toHaveCount(0); // no saved research
   await page.locator("#researchButton").click();
-  await expect(page.getByTestId("research-panel")).toContainText("No research yet");
+  await expect(page.getByTestId("research-panel")).toContainText("Offline mode is on");
+  await expect(page.getByRole("button", { name: "Run research" })).toHaveCount(0);
   await page.locator("#researchButton").click();
   await expect(page.getByTestId("research-panel")).toHaveCount(0);
 });
@@ -119,4 +122,28 @@ test("Settings dialog shows paths next to the app and applies changes", async ({
   await expect(page.locator(".dataset-badge")).toContainText("3,704 qualified");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
+});
+
+test("saved LLM research opens with the game and is part of the JPG", async ({ page }) => {
+  await page.goto("/");
+  await loadGame(page, String(VAMPIRE));
+  const panel = page.getByTestId("research-panel");
+  await expect(panel).toBeVisible(); // opens automatically when research exists
+  const table = page.getByTestId("research-table");
+  await expect(table).toContainText("1–3 people (best 2)");
+  await expect(table).toContainText("10–14 months (best 12)");
+  await expect(table).toContainText("Cost at €50K per person-year");
+  await expect(table).toContainText("≈ €100K"); // 2 people x 12 months x €50K
+  await expect(table).toContainText("after the 30% platform cut");
+  await expect(page.getByTestId("insights-worked")).toContainText("Fixture reason it worked");
+  await expect(page.getByTestId("insights-held-back")).toContainText("Fixture bottleneck");
+  // Offline in tests: a new run cannot be started.
+  await expect(page.getByRole("button", { name: "Refresh research" })).toBeDisabled();
+
+  await page.locator("#exportJpegButton").click();
+  await expect(page.locator("#toast")).toContainText("Vampire Survivors (1794680).jpg", { timeout: 20_000 });
+  const bytes = readFileSync(path.join(APP_DIR, "studiesJPG", "Vampire Survivors (1794680).jpg"));
+  const sof = bytes.indexOf(Buffer.from([0xff, 0xc0]));
+  const height = bytes.readUInt16BE(sof + 5);
+  expect(height).toBeGreaterThan(2000); // 1,646 px without research: extended down with it
 });

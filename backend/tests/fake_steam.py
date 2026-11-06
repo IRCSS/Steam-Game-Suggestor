@@ -32,6 +32,12 @@ class FakeApp:
     tags: dict[str, int] = field(default_factory=lambda: {"Indie": 120, "Roguelike": 90})
     listed: bool = True  # appears in the official app list
     last_modified: int = 1  # unix time of the last change (for if_modified_since)
+    positive_texts: list[str] = field(
+        default_factory=lambda: ["[b]So addictive[/b], tons of content for the price.", "ok"]
+    )
+    negative_texts: list[str] = field(
+        default_factory=lambda: ["Gets repetitive after 20 hours, endgame is thin."]
+    )
     available: bool = True
 
 
@@ -82,6 +88,15 @@ class FakeSteam:
             self.review_queries.append(query)
             app = self.apps.get(int(query["appid"]))
             pos, neg = (app.reviews_positive, app.reviews_negative) if app else (0, 0)
+            if query.get("review_type") in (1, 2) and app is not None:
+                positive = query["review_type"] == 1
+                texts = app.positive_texts if positive else app.negative_texts
+                reviews = [
+                    {"review": t, "voted_up": positive, "votes_up": 10 + i,
+                     "author": {"playtime_forever": 600}}
+                    for i, t in enumerate(texts)
+                ]  # fmt: skip
+                return httpx.Response(200, json={"response": {"reviews": reviews}})
             summary = {
                 "num_reviews": 1, "review_score": 8, "review_score_desc": "Very Positive",
                 "total_positive": pos, "total_negative": neg, "total_reviews": pos + neg,

@@ -25,6 +25,8 @@ export type DiscoverOptions = Schemas["DiscoverOptions"];
 export type ChartsRequest = Schemas["ChartsRequest"];
 export type ChartsResponse = Schemas["ChartsResponse"];
 export type HistoryResponse2 = Schemas["HistoryResponseModel"];
+export type ResearchView = Schemas["ResearchView"];
+export type ResearchStatus = Schemas["ResearchStatus"];
 
 export class ApiError extends Error {
   constructor(
@@ -107,6 +109,12 @@ export const api = {
   charts: (body: ChartsRequest, signal?: AbortSignal) =>
     request<ChartsResponse>("/api/charts/overview", post(body, signal)),
   gameHistory: (appid: number) => request<HistoryResponse2>(`/api/charts/history/${appid}`),
+
+  researchStatus: () => request<ResearchStatus>("/api/research/status"),
+  research: (appid: number) => request<ResearchView>(`/api/research/${appid}`),
+  startResearch: (appid: number) => request<JobView>(`/api/research/${appid}`, post({})),
+  researchJob: () => request<JobView>("/api/research/job"),
+  cancelResearch: () => request<JobView>("/api/research/job/cancel", post({})),
 
   artworkUrl: (appid: number) => `/api/games/${appid}/artwork`,
   exportJpeg: (appid: number, imageBase64: string) =>

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { GameReport } from "../api/client";
 import { formatCompactCurrency, formatCurrency, formatInt, minorToMajor } from "../lib/format";
 import { HeroImage } from "./HeroImage";
@@ -10,6 +11,7 @@ interface Props {
   onResearch: () => void;
   onExportJpeg: () => void;
   researchOpen: boolean;
+  researchPanel?: ReactNode;
   busy: "study" | "export" | null;
 }
 
@@ -19,33 +21,6 @@ function languageSummary(game: GameReport): string {
   if (info.status !== "ok" || info.languages.length === 0)
     return "Not checked yet - run the language lookup in Settings (gear icon).";
   return info.languages.join(", ");
-}
-
-/** Placeholder for "Get more info from LLM": the research fields are defined later. */
-export function ResearchPanel() {
-  return (
-    <section className="research-panel" data-testid="research-panel">
-      <h3 className="section-title">LLM research</h3>
-      <table className="research-table">
-        <thead>
-          <tr>
-            <th>Topic</th>
-            <th>Finding</th>
-            <th>Confidence</th>
-            <th>Sources</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colSpan={4} className="research-empty">
-              No research yet. LLM research (team size, budget, development time, ...) is not
-              connected yet - this table will be filled once a provider is set up in Settings.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-  );
 }
 
 export function StudyMetrics({ game }: { game: GameReport }) {
@@ -240,7 +215,7 @@ export function GameCard(props: Props) {
             </span>
           )}
         </div>
-        {props.researchOpen && <ResearchPanel />}
+        {props.researchOpen && props.researchPanel}
       </div>
     </article>
   );

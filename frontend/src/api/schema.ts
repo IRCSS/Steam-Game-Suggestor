@@ -460,6 +460,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/research/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Research Status */
+        get: operations["research_status_api_research_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Research Job */
+        get: operations["research_job_api_research_job_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/job/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Research */
+        post: operations["cancel_research_api_research_job_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{appid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Research */
+        get: operations["get_research_api_research__appid__get"];
+        put?: never;
+        /**
+         * Start Research
+         * @description Start (or refresh) research for one game. Earlier runs are kept.
+         */
+        post: operations["start_research_api_research__appid__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -691,6 +763,64 @@ export interface components {
              */
             max_recheck: number;
         };
+        /**
+         * EconomicsView
+         * @description Derived by the app (not the LLM) from team size x development time and the cost model.
+         */
+        EconomicsView: {
+            person_years: components["schemas"]["RangeView"];
+            cost: components["schemas"]["RangeView"];
+            /** Cost Currency */
+            cost_currency: string;
+            cost_usd: components["schemas"]["RangeView"];
+            /** Comparison Team Size */
+            comparison_team_size: number;
+            comparison_team_years: components["schemas"]["RangeView"];
+            break_even_gross_usd: components["schemas"]["RangeView"];
+            break_even_copies: components["schemas"]["RangeView"] | null;
+            /** Price Usd */
+            price_usd: number;
+            /** Estimated Revenue Usd */
+            estimated_revenue_usd: number;
+            /** Revenue Multiple */
+            revenue_multiple: number | null;
+            /** Platform Cut */
+            platform_cut: number;
+            /** Salary Per Person Year */
+            salary_per_person_year: number;
+            /** Usd Per Salary Unit */
+            usd_per_salary_unit: number;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "high" | "medium" | "low" | "unknown";
+        };
+        /**
+         * Estimate
+         * @description A researched quantity: range + best guess, with how sure we are and why.
+         */
+        Estimate: {
+            /** Low */
+            low?: number | null;
+            /** High */
+            high?: number | null;
+            /** Best */
+            best?: number | null;
+            /**
+             * Confidence
+             * @default unknown
+             * @enum {string}
+             */
+            confidence: "high" | "medium" | "low" | "unknown";
+            /**
+             * Basis
+             * @default
+             */
+            basis: string;
+            /** Sources */
+            sources?: components["schemas"]["Source"][];
+        };
         /** GameReport */
         GameReport: {
             /** Appid */
@@ -781,6 +911,22 @@ export interface components {
             points: components["schemas"]["HistoryPoint"][];
             /** Enough History */
             enough_history: boolean;
+        };
+        /** Insight */
+        Insight: {
+            /** Point */
+            point: string;
+            /**
+             * Evidence
+             * @default
+             */
+            evidence: string;
+            /**
+             * Confidence
+             * @default medium
+             * @enum {string}
+             */
+            confidence: "high" | "medium" | "low" | "unknown";
         };
         /** JobPreview */
         JobPreview: {
@@ -986,6 +1132,15 @@ export interface components {
             /** Threshold Usd */
             threshold_usd: number;
         };
+        /** RangeView */
+        RangeView: {
+            /** Low */
+            low: number | null;
+            /** Best */
+            best: number | null;
+            /** High */
+            high: number | null;
+        };
         /** RefreshOptions */
         RefreshOptions: {
             /**
@@ -1018,6 +1173,77 @@ export interface components {
             only_missing_languages: boolean;
             /** Limit */
             limit?: number | null;
+        };
+        /**
+         * ResearchFindings
+         * @description Exactly what the LLM must return (also sent to it as a JSON schema).
+         */
+        ResearchFindings: {
+            /**
+             * Studio
+             * @default
+             */
+            studio: string;
+            team_size: components["schemas"]["Estimate"];
+            development_months: components["schemas"]["Estimate"];
+            /** Why It Worked */
+            why_it_worked?: components["schemas"]["Insight"][];
+            /** What Held It Back */
+            what_held_it_back?: components["schemas"]["Insight"][];
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** ResearchRunView */
+        ResearchRunView: {
+            /** Created At */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /** Provider */
+            provider: string;
+            /** Model */
+            model: string;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Duration Seconds */
+            duration_seconds: number;
+            /** Web Searches */
+            web_searches: number;
+            /** Reviews Used */
+            reviews_used: {
+                [key: string]: number;
+            };
+            /** Warnings */
+            warnings: string[];
+            /** Prompt Version */
+            prompt_version: string;
+            findings: components["schemas"]["ResearchFindings"];
+        };
+        /** ResearchStatus */
+        ResearchStatus: {
+            /** Available */
+            available: boolean;
+            /** Message */
+            message: string;
+            /** Provider */
+            provider: string;
+            /** Cli Path */
+            cli_path: string | null;
+            /** Max Budget Usd */
+            max_budget_usd: number;
+            job: components["schemas"]["JobView"];
+        };
+        /** ResearchView */
+        ResearchView: {
+            /** Appid */
+            appid: number;
+            run: components["schemas"]["ResearchRunView"] | null;
+            /** Runs Count */
+            runs_count: number;
+            economics: components["schemas"]["EconomicsView"] | null;
         };
         /** RevenueEstimate */
         RevenueEstimate: {
@@ -1057,12 +1283,52 @@ export interface components {
              * Llm Provider
              * @enum {string}
              */
-            llm_provider: "none" | "openai" | "anthropic";
+            llm_provider: "claude_code" | "none" | "openai" | "anthropic";
             /**
              * Llm Model
              * @default
              */
             llm_model: string;
+            /**
+             * Claude Cli Path
+             * @default
+             */
+            claude_cli_path: string;
+            /**
+             * Llm Max Budget Usd
+             * @default 2
+             */
+            llm_max_budget_usd: number;
+            /**
+             * Llm Timeout Minutes
+             * @default 15
+             */
+            llm_timeout_minutes: number;
+            /**
+             * Salary Per Person Year
+             * @default 50000
+             */
+            salary_per_person_year: number;
+            /**
+             * Salary Currency
+             * @default EUR
+             */
+            salary_currency: string;
+            /**
+             * Usd Per Salary Unit
+             * @default 1.08
+             */
+            usd_per_salary_unit: number;
+            /**
+             * Comparison Team Size
+             * @default 3
+             */
+            comparison_team_size: number;
+            /**
+             * Platform Cut Percent
+             * @default 30
+             */
+            platform_cut_percent: number;
             /** Steam Api Key */
             steam_api_key?: string | null;
             /** Llm Api Key */
@@ -1099,11 +1365,29 @@ export interface components {
              * Llm Provider
              * @enum {string}
              */
-            llm_provider: "none" | "openai" | "anthropic";
+            llm_provider: "claude_code" | "none" | "openai" | "anthropic";
             /** Llm Model */
             llm_model: string;
             /** Llm Api Key Set */
             llm_api_key_set: boolean;
+            /** Claude Cli Path */
+            claude_cli_path: string;
+            /** Claude Cli Detected */
+            claude_cli_detected: string | null;
+            /** Llm Max Budget Usd */
+            llm_max_budget_usd: number;
+            /** Llm Timeout Minutes */
+            llm_timeout_minutes: number;
+            /** Salary Per Person Year */
+            salary_per_person_year: number;
+            /** Salary Currency */
+            salary_currency: string;
+            /** Usd Per Salary Unit */
+            usd_per_salary_unit: number;
+            /** Comparison Team Size */
+            comparison_team_size: number;
+            /** Platform Cut Percent */
+            platform_cut_percent: number;
             /** Warning */
             warning: string | null;
         };
@@ -1113,6 +1397,13 @@ export interface components {
             file: string;
             /** Bytes */
             bytes: number;
+        };
+        /** Source */
+        Source: {
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
         };
         /** StudiesResponse */
         StudiesResponse: {
@@ -2024,6 +2315,128 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HistoryResponseModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    research_status_api_research_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchStatus"];
+                };
+            };
+        };
+    };
+    research_job_api_research_job_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+        };
+    };
+    cancel_research_api_research_job_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
+                };
+            };
+        };
+    };
+    get_research_api_research__appid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResearchView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_research_api_research__appid__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobView"];
                 };
             };
             /** @description Validation Error */

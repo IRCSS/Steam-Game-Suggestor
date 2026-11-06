@@ -277,3 +277,20 @@ def test_make_settings_layout(tmp_path: Path) -> None:
     s = make_settings(tmp_path)
     assert s.catalog_path == tmp_path / "data" / "catalog.sqlite3"
     assert s.studies_dir == tmp_path / "data" / "studies"
+
+
+def test_settings_v1_migrates_placeholder_llm_provider(tmp_path: Path) -> None:
+    old = {
+        "version": 1,
+        "data_dir": "data",
+        "llm": {"provider": "none", "model": "", "api_key": ""},
+    }
+    settings_path(tmp_path).write_text(json.dumps(old), encoding="utf-8")
+    content, _ = read_settings_file(tmp_path)
+    assert content.version == 2 and content.llm.provider == "claude_code"
+    stored = json.loads(settings_path(tmp_path).read_text(encoding="utf-8"))
+    assert stored["llm"]["provider"] == "claude_code" and stored["version"] == 2
+    # A deliberate "off" after the upgrade is respected.
+    stored["llm"]["provider"] = "none"
+    settings_path(tmp_path).write_text(json.dumps(stored), encoding="utf-8")
+    assert read_settings_file(tmp_path)[0].llm.provider == "none"

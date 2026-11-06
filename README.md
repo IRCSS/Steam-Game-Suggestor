@@ -51,9 +51,26 @@ dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the win
 - `dist/` and `build/` are git-ignored. `build.bat --no-pause` (or `npm run build-desktop`) is for
   terminal and CI use.
 
+### LLM research (0.5)
+"Get more info from LLM" runs Claude Code headless (web search only, no shell or file access,
+spend-capped, $0.2-0.5 and about 1 minute per game in tests). It produces:
+
+| Row | How |
+|---|---|
+| People who worked on it | web research: range, best estimate, confidence, sources |
+| Development time | web research: same |
+| Cost at €50K per person-year | calculated: people × years × salary; also how long a team of 3 would need |
+| Break-even | calculated: cost ÷ (1 − 30% platform cut), in revenue and copies |
+| Why it did as well / why not better | from the 40+40 most helpful Steam reviews, with confidence |
+
+Salary, currency and exchange rate, team size, platform cut, model, spend cap and CLI path are
+all in Settings. Results are saved to `data\research\<appid>.json`, and the JPG export includes
+them.
+
 ### The three tabs (0.3)
 - **Suggest**: filters, random suggestions, game report (with when and where each number was
-  observed), Add to Studies, Get more info from LLM (table only for now), Export as JPG.
+  observed), Add to Studies, Export as JPG, and **Get more info from LLM**: a standardized,
+  cited research table, run with the Claude Code CLI installed on the PC (see below).
 - **Charts**: revenue distribution, games per year, price vs revenue (Studies highlighted; click a
   dot to open the game), tags by median revenue, review count vs score, and the selected game's
   review history. Scope: the qualified catalog by year, or the Suggest tab's filters. Every chart

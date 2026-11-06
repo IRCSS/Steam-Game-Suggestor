@@ -33,10 +33,19 @@ export const LANGUAGE_STATUS = {
   },
 };
 
+const IDLE_JOB = {
+  job_id: "", kind: "", label: "", state: "idle", total: 0, done: 0, counters: {}, requests: 0,
+  started_at: null, finished_at: null, eta_seconds: null, message: "", recent: [],
+};
+
 /** Endpoints every page load calls; answered here so tests only mock what they exercise. */
 function sideEndpoint(url: string): unknown {
   if (url === "/api/studies") return { items: [], folder: "data/studies" };
   if (url === "/api/languages/status") return LANGUAGE_STATUS;
+  if (url === "/api/research/status")
+    return { available: true, message: "Ready", provider: "claude_code", cli_path: "claude.exe", max_budget_usd: 2, job: { ...IDLE_JOB } };
+  if (/^\/api\/research\/\d+$/.test(url))
+    return { appid: Number(url.split("/").pop()), run: null, runs_count: 0, economics: null };
   return undefined;
 }
 

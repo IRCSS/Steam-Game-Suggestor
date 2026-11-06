@@ -18,16 +18,19 @@ from __future__ import annotations
 import json
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.domain.research import CostModel
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.5.0"
 SETTINGS_FILE_NAME = "settings.json"
+SETTINGS_VERSION = 2
 CATALOG_FILE_NAME = "catalog.sqlite3"
 
 REFERENCE_HTML = REPO_ROOT / "reference" / "steam_game_suggester.html"
@@ -72,9 +75,25 @@ class SteamSettings(BaseModel):
 class LlmSettings(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    provider: Literal["none", "openai", "anthropic"] = "none"  # not used yet
-    model: str = ""
-    api_key: str = ""
+    # "claude_code" = the Claude Code CLI installed on this PC (headless). Others: future.
+    provider: Literal["claude_code", "none", "openai", "anthropic"] = "claude_code"
+    model: str = ""  # empty = the CLI's default model
+    api_key: str = ""  # only for future API providers
+    claude_cli_path: str = ""  # empty = auto-detect
+    max_budget_usd: float = Field(default=2.0, ge=0.1, le=50)
+    timeout_minutes: int = Field(default=15, ge=2, le=120)
+
+
+class CostModelSettings(BaseModel):
+    """How research turns team size x development time into money (user-editable)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    salary_per_person_year: float = Field(default=50_000, gt=0)
+    salary_currency: str = Field(default="EUR", max_length=8)
+    usd_per_salary_unit: float = Field(default=1.08, gt=0)  # EUR -> USD
+    comparison_team_size: int = Field(default=3, ge=1, le=1000)
+    platform_cut: float = Field(default=0.30, ge=0, lt=1)
 
 
 class SettingsFile(BaseModel):
@@ -82,13 +101,26 @@ class SettingsFile(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    version: int = 1
+    version: int = SETTINGS_VERSION
     data_dir: str = "data"
     export_dir: str = "studiesJPG"
     qualification_min_revenue_usd: int = Field(default=100_000, ge=0)
     offline_mode: bool = False
     steam: SteamSettings = Field(default_factory=SteamSettings)
     llm: LlmSettings = Field(default_factory=LlmSettings)
+    cost_model: CostModelSettings = Field(default_factory=CostModelSettings)
+
+
+def migrate_settings(content: SettingsFile) -> bool:
+    """Upgrade older settings files in place. Returns True when something changed."""
+    changed = False
+    if content.version < 2:
+        # v1 wrote llm.provider = "none" as a placeholder ("not used yet"), not as a user choice.
+        if content.llm.provider == "none":
+            content.llm.provider = "claude_code"
+        content.version = 2
+        changed = True
+    return changed
 
 
 def settings_path(app_dir: Path) -> Path:
@@ -112,7 +144,10 @@ def read_settings_file(app_dir: Path) -> tuple[SettingsFile, str | None]:
         return content, None
     try:
         raw: Any = json.loads(path.read_text(encoding="utf-8-sig"))
-        return SettingsFile.model_validate(raw), None
+        content = SettingsFile.model_validate(raw)
+        if migrate_settings(content):
+            write_settings_file(app_dir, content)
+        return content, None
     except (OSError, ValueError, ValidationError) as exc:
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         backup = path.with_name(f"settings.invalid-{stamp}.json")
@@ -148,6 +183,12 @@ class Settings:
     steam_requests_per_minute: int = 35
     catalog_immutable: bool = False  # packaged app: no SQLite locking on shared drives
     warning: str | None = None
+    llm_provider: str = "claude_code"
+    llm_model: str = ""
+    claude_cli_path: str = ""
+    llm_max_budget_usd: float = 2.0
+    llm_timeout_minutes: int = 15
+    cost_model: CostModel = field(default_factory=CostModel)
 
     @property
     def catalog_path(self) -> Path:
@@ -160,6 +201,10 @@ class Settings:
     @property
     def cache_dir(self) -> Path:
         return self.data_dir / "cache"
+
+    @property
+    def research_dir(self) -> Path:
+        return self.data_dir / "research"
 
 
 def settings_from_file(
@@ -176,6 +221,18 @@ def settings_from_file(
         steam_requests_per_minute=content.steam.store_requests_per_minute,
         catalog_immutable=is_frozen(),
         warning=warning,
+        llm_provider=content.llm.provider,
+        llm_model=content.llm.model,
+        claude_cli_path=content.llm.claude_cli_path,
+        llm_max_budget_usd=content.llm.max_budget_usd,
+        llm_timeout_minutes=content.llm.timeout_minutes,
+        cost_model=CostModel(
+            salary_per_person_year=content.cost_model.salary_per_person_year,
+            salary_currency=content.cost_model.salary_currency,
+            usd_per_salary_unit=content.cost_model.usd_per_salary_unit,
+            comparison_team_size=content.cost_model.comparison_team_size,
+            platform_cut=content.cost_model.platform_cut,
+        ),
     )
 
 

@@ -25,9 +25,18 @@ class SettingsView(BaseModel):
     offline_forced: bool  # STEAM_STUDY_OFFLINE=1 (tests) overrides the setting
     steam_api_key_set: bool
     steam_store_requests_per_minute: int
-    llm_provider: Literal["none", "openai", "anthropic"]
+    llm_provider: Literal["claude_code", "none", "openai", "anthropic"]
     llm_model: str
     llm_api_key_set: bool
+    claude_cli_path: str
+    claude_cli_detected: str | None
+    llm_max_budget_usd: float
+    llm_timeout_minutes: int
+    salary_per_person_year: float
+    salary_currency: str
+    usd_per_salary_unit: float
+    comparison_team_size: int
+    platform_cut_percent: float
     warning: str | None
 
 
@@ -37,8 +46,16 @@ class SettingsUpdate(BaseModel):
     qualification_min_revenue_usd: int = Field(ge=0, le=10_000_000_000)
     offline_mode: bool
     steam_store_requests_per_minute: int = Field(ge=1, le=120)
-    llm_provider: Literal["none", "openai", "anthropic"]
+    llm_provider: Literal["claude_code", "none", "openai", "anthropic"]
     llm_model: str = Field(default="", max_length=200)
+    claude_cli_path: str = Field(default="", max_length=500)
+    llm_max_budget_usd: float = Field(default=2.0, ge=0.1, le=50)
+    llm_timeout_minutes: int = Field(default=15, ge=2, le=120)
+    salary_per_person_year: float = Field(default=50_000, gt=0)
+    salary_currency: str = Field(default="EUR", min_length=1, max_length=8)
+    usd_per_salary_unit: float = Field(default=1.08, gt=0)
+    comparison_team_size: int = Field(default=3, ge=1, le=1000)
+    platform_cut_percent: float = Field(default=30, ge=0, lt=100)
     # None = keep the stored value; "" = clear it.
     steam_api_key: str | None = Field(default=None, max_length=500)
     llm_api_key: str | None = Field(default=None, max_length=500)

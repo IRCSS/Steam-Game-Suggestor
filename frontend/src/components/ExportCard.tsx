@@ -1,11 +1,13 @@
 import { forwardRef } from "react";
-import { api, type GameReport } from "../api/client";
+import { api, type GameReport, type ResearchView } from "../api/client";
 import { formatCompactCurrency, formatCurrency, formatInt, minorToMajor } from "../lib/format";
 import { PLACEHOLDER_IMAGE } from "./HeroImage";
+import { ResearchTable } from "./ResearchPanel";
 
 interface Props {
   game: GameReport;
   exportedAt: Date;
+  research?: ResearchView | null;
   onArtworkSettled: () => void;
 }
 
@@ -14,7 +16,7 @@ interface Props {
  * Artwork comes through the backend proxy (same origin) so it can be drawn into the image.
  */
 export const ExportCard = forwardRef<HTMLDivElement, Props>(function ExportCard(
-  { game, exportedAt, onArtworkSettled },
+  { game, exportedAt, research, onArtworkSettled },
   ref,
 ) {
   const rank = game.rank.rank;
@@ -103,6 +105,17 @@ export const ExportCard = forwardRef<HTMLDivElement, Props>(function ExportCard(
           </p>
         </section>
       </div>
+
+      {research?.run && (
+        <section className="export-research" data-testid="export-research">
+          <h3 className="section-title">LLM research</h3>
+          <ResearchTable view={research} forExport />
+          <p className="export-small">
+            Researched {research.run.created_at.slice(0, 10)} by Claude Code from public sources and
+            the most helpful Steam reviews. Cost and break-even are calculated from the estimates.
+          </p>
+        </section>
+      )}
 
       <footer className="export-footer">
         Exported {exportedAt.toISOString().slice(0, 10)} · Indie Case Study Suggester · Revenue is an

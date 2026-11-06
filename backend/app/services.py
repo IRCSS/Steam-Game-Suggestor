@@ -33,8 +33,10 @@ from app.domain.lookup import find_exact_game, search_games
 from app.domain.models import Game
 from app.domain.observations import build_catalog
 from app.domain.qualification import CatalogPolicy, qualify
+from app.domain.research import Economics, compute_economics
 from app.domain.session import SessionStore
 from app.domain.suggestion import MatchCount, Suggestion, count_matches, suggest
+from app.jobs.research import make_research_task
 from app.jobs.runner import JobRunner
 from app.jobs.sync import (
     DEEP_CHECK_MARKER,
@@ -54,8 +56,10 @@ from app.jobs.sync import (
 )
 from app.logging_config import get_logger
 from app.providers.steam_store import Artwork, fetch_artwork, make_client
+from app.research.claude_cli import Runner, find_claude_cli, subprocess_runner
 from app.storage.language_cache import LanguageCache
 from app.storage.observations import ObservationStore
+from app.storage.research import ResearchRun, ResearchStore
 from app.storage.studies import Study, StudyStore
 
 log = get_logger("service")
@@ -126,6 +130,10 @@ class StudyService:
         self.languages = LanguageCache(settings.cache_dir)
         self._http_factory = http_factory or make_client
         self.observations = ObservationStore(settings.data_dir / "observations")
+        self.research = ResearchStore(settings.research_dir)
+        self.research_runner: Runner = subprocess_runner
+        # Research has its own worker so it never blocks (or is blocked by) data updates.
+        self.research_jobs = JobRunner(self._http_factory, {"reviews": 1.0})
         self.jobs = JobRunner(
             self._http_factory,
             {
@@ -139,7 +147,9 @@ class StudyService:
 
     def close(self) -> None:
         self.jobs.cancel()
+        self.research_jobs.cancel()
         self.jobs.join(timeout=5)
+        self.research_jobs.join(timeout=5)
         with self._lock:
             if self._conn is not None:
                 self._conn.close()
@@ -432,6 +442,45 @@ class StudyService:
             self.languages,
         )
         return self.jobs.start("deep_check", "Deep check", task)
+
+    # --- LLM research -------------------------------------------------------------------------
+
+    def research_cli(self) -> Path | None:
+        if self.settings.llm_provider != "claude_code":
+            return None
+        return find_claude_cli(self.settings.claude_cli_path)
+
+    def research_availability(self) -> tuple[bool, str]:
+        if self.settings.llm_provider != "claude_code":
+            return False, "LLM research is turned off (Settings -> LLM provider)."
+        if self.settings.offline:
+            return False, "Offline mode is on (Settings)."
+        if self.research_cli() is None:
+            return False, (
+                "Claude Code CLI not found on this PC. Install it, or set its path in Settings."
+            )
+        return True, "Ready"
+
+    def start_research(self, game: Game) -> bool:
+        available, message = self.research_availability()
+        cli = self.research_cli()
+        if not available or cli is None:
+            raise OfflineError(message)
+        task = make_research_task(
+            game,
+            cli,
+            self.research,
+            model=self.settings.llm_model,
+            max_budget_usd=self.settings.llm_max_budget_usd,
+            timeout_seconds=self.settings.llm_timeout_minutes * 60,
+            runner=self.research_runner,
+        )
+        return self.research_jobs.start("research", f"Research: {game.name}", task)
+
+    def economics(self, game: Game, run: ResearchRun) -> Economics:
+        return compute_economics(
+            run.findings, self.settings.cost_model, game.price, game.estimated_revenue
+        )
 
     def start_single_app(self, appid: int) -> bool:
         self._require_online()

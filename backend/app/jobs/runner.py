@@ -54,6 +54,10 @@ class JobStatus:
         return elapsed / self.done * (self.total - self.done)
 
 
+class JobFailed(RuntimeError):
+    """Raised by a task to end the job as failed with a user-readable message."""
+
+
 class JobContext:
     """Handed to a job's task function: rate-limited calls, progress and logging."""
 
@@ -75,6 +79,10 @@ class JobContext:
     @property
     def cancelled(self) -> bool:
         return self._cancel.is_set()
+
+    @property
+    def cancel_event(self) -> threading.Event:
+        return self._cancel
 
     def log(self, line: str) -> None:
         self.status.recent.append(f"{utc_now()[11:19]} {line}")
@@ -182,6 +190,9 @@ class JobRunner:
             else:
                 status.state = "completed"
                 status.message = message
+        except JobFailed as exc:
+            status.state = "cancelled" if self._cancel.is_set() else "failed"
+            status.message = "Stopped." if self._cancel.is_set() else str(exc)
         except Exception as exc:  # never let the worker die silently
             log.exception("job failed", extra={"kind": status.kind})
             status.state = "failed"

@@ -5,13 +5,17 @@ import {
   type CountResponse,
   type GameReport,
   type GameSummary,
+  type JobView,
   type LanguageStatus,
   type MetaResponse,
+  type ResearchStatus,
+  type ResearchView,
   type StudyItem,
   type StudyFilters,
   type SuggestionQuery,
 } from "../api/client";
 import { ExportCard } from "../components/ExportCard";
+import { ResearchPanel } from "../components/ResearchPanel";
 import { StudiesList } from "../components/StudiesList";
 import { renderJpeg, waitFor } from "../lib/exportJpeg";
 import { FilterSidebar } from "../components/FilterSidebar";
@@ -67,6 +71,11 @@ export function SuggestPage({
   const [studies, setStudies] = useState<StudyItem[]>([]);
   const [languages, setLanguages] = useState<LanguageStatus | null>(null);
   const [researchOpen, setResearchOpen] = useState(false);
+  const [research, setResearch] = useState<ResearchView | null>(null);
+  const [researchStatus, setResearchStatus] = useState<ResearchStatus | null>(null);
+  const [researchJob, setResearchJob] = useState<JobView | null>(null);
+  const [researchAppid, setResearchAppid] = useState<number | null>(null);
+  const researchState = useRef<string | null>(null);
   const [busy, setBusy] = useState<"study" | "export" | null>(null);
   const [exporting, setExporting] = useState<{ game: GameReport; at: Date } | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -85,6 +94,61 @@ export function SuggestPage({
   useEffect(() => {
     onGameChange?.(game);
   }, [game, onGameChange]);
+
+  // Research availability (and any run already in progress, e.g. started before a reload).
+  useEffect(() => {
+    api
+      .researchStatus()
+      .then((s) => {
+        setResearchStatus(s);
+        setResearchJob(s.job);
+        researchState.current = s.job.state;
+      })
+      .catch(() => undefined);
+  }, [refreshToken]);
+
+  // Saved research for the shown game; open the panel automatically when there is some.
+  const gameId = game?.appid ?? null;
+  useEffect(() => {
+    if (gameId === null) return;
+    let cancelled = false;
+    api
+      .research(gameId)
+      .then((view) => {
+        if (cancelled) return;
+        setResearch(view);
+        if (view.run) setResearchOpen(true);
+      })
+      .catch(() => !cancelled && setResearch(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, refreshToken]);
+
+  // Poll a running research job; when it ends, reload the result.
+  const researchRunning = researchJob?.state === "running";
+  useEffect(() => {
+    if (!researchRunning) return;
+    const timer = window.setInterval(() => {
+      api
+        .researchJob()
+        .then((job) => {
+          setResearchJob(job);
+          if (researchState.current === "running" && job.state !== "running") {
+            notify(job.state === "completed" ? job.message : `${job.label}: ${job.state}`);
+            if (researchAppid !== null) {
+              api
+                .research(researchAppid)
+                .then((view) => setResearch((current) => (view.appid === current?.appid ? view : current)))
+                .catch(() => undefined);
+            }
+          }
+          researchState.current = job.state;
+        })
+        .catch(() => undefined);
+    }, 1500);
+    return () => window.clearInterval(timer);
+  }, [researchRunning, researchAppid, notify]);
 
   const query: SuggestionQuery = useMemo(
     () => ({
@@ -240,6 +304,35 @@ export function SuggestPage({
     }
   };
 
+  const runResearch = async () => {
+    if (!game) return;
+    try {
+      const job = await api.startResearch(game.appid);
+      setResearchAppid(game.appid);
+      setResearchJob(job);
+      researchState.current = "running";
+      setResearchOpen(true);
+    } catch (error) {
+      toast.show(errorText(error));
+    }
+  };
+
+  const toggleResearch = () => {
+    const opening = !researchOpen;
+    setResearchOpen(opening);
+    // First time for this game: just run it (no chat, no extra click).
+    if (
+      opening &&
+      game &&
+      research?.appid === game.appid &&
+      !research.run &&
+      researchStatus?.available &&
+      !researchRunning
+    ) {
+      void runResearch();
+    }
+  };
+
   const exportJpeg = async () => {
     if (!game || busy === "export") return;
     setBusy("export");
@@ -318,7 +411,19 @@ export function SuggestPage({
               onAnother={suggest}
               onCopyAppId={copyAppId}
               onToggleStudy={toggleStudy}
-              onResearch={() => setResearchOpen((open) => !open)}
+              onResearch={toggleResearch}
+              researchPanel={
+                <ResearchPanel
+                  view={research?.appid === game.appid ? research : null}
+                  status={researchStatus}
+                  job={researchAppid === game.appid ? researchJob : null}
+                  otherJobLabel={
+                    researchRunning && researchAppid !== game.appid ? (researchJob?.label ?? null) : null
+                  }
+                  onRun={runResearch}
+                  onCancel={() => api.cancelResearch().then(setResearchJob)}
+                />
+              }
               onExportJpeg={exportJpeg}
               researchOpen={researchOpen}
               busy={busy}
@@ -345,6 +450,7 @@ export function SuggestPage({
             ref={exportRef}
             game={exporting.game}
             exportedAt={exporting.at}
+            research={research?.appid === exporting.game.appid ? research : null}
             onArtworkSettled={() => artworkSettled.current()}
           />
         </div>

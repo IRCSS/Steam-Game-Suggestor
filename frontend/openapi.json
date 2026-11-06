@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steam Study Tool API",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "paths": {
     "/api/health": {
@@ -961,6 +961,152 @@
           }
         }
       }
+    },
+    "/api/research/status": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Research Status",
+        "operationId": "research_status_api_research_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/job": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Research Job",
+        "operationId": "research_job_api_research_job_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/job/cancel": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Cancel Research",
+        "operationId": "cancel_research_api_research_job_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{appid}": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Get Research",
+        "operationId": "get_research_api_research__appid__get",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Start Research",
+        "description": "Start (or refresh) research for one game. Earlier runs are kept.",
+        "operationId": "start_research_api_research__appid__post",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Appid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1523,6 +1669,172 @@
         "type": "object",
         "title": "DiscoverOptions"
       },
+      "EconomicsView": {
+        "properties": {
+          "person_years": {
+            "$ref": "#/components/schemas/RangeView"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/RangeView"
+          },
+          "cost_currency": {
+            "type": "string",
+            "title": "Cost Currency"
+          },
+          "cost_usd": {
+            "$ref": "#/components/schemas/RangeView"
+          },
+          "comparison_team_size": {
+            "type": "integer",
+            "title": "Comparison Team Size"
+          },
+          "comparison_team_years": {
+            "$ref": "#/components/schemas/RangeView"
+          },
+          "break_even_gross_usd": {
+            "$ref": "#/components/schemas/RangeView"
+          },
+          "break_even_copies": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RangeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "price_usd": {
+            "type": "number",
+            "title": "Price Usd"
+          },
+          "estimated_revenue_usd": {
+            "type": "integer",
+            "title": "Estimated Revenue Usd"
+          },
+          "revenue_multiple": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue Multiple"
+          },
+          "platform_cut": {
+            "type": "number",
+            "title": "Platform Cut"
+          },
+          "salary_per_person_year": {
+            "type": "number",
+            "title": "Salary Per Person Year"
+          },
+          "usd_per_salary_unit": {
+            "type": "number",
+            "title": "Usd Per Salary Unit"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "unknown"
+            ],
+            "title": "Confidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person_years",
+          "cost",
+          "cost_currency",
+          "cost_usd",
+          "comparison_team_size",
+          "comparison_team_years",
+          "break_even_gross_usd",
+          "break_even_copies",
+          "price_usd",
+          "estimated_revenue_usd",
+          "revenue_multiple",
+          "platform_cut",
+          "salary_per_person_year",
+          "usd_per_salary_unit",
+          "confidence"
+        ],
+        "title": "EconomicsView",
+        "description": "Derived by the app (not the LLM) from team size x development time and the cost model."
+      },
+      "Estimate": {
+        "properties": {
+          "low": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "best": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "unknown"
+            ],
+            "title": "Confidence",
+            "default": "unknown"
+          },
+          "basis": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Basis",
+            "default": ""
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Sources"
+          }
+        },
+        "type": "object",
+        "title": "Estimate",
+        "description": "A researched quantity: range + best guess, with how sure we are and why."
+      },
       "GameReport": {
         "properties": {
           "appid": {
@@ -1787,6 +2099,37 @@
           "enough_history"
         ],
         "title": "HistoryResponseModel"
+      },
+      "Insight": {
+        "properties": {
+          "point": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Point"
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Evidence",
+            "default": ""
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "unknown"
+            ],
+            "title": "Confidence",
+            "default": "medium"
+          }
+        },
+        "type": "object",
+        "required": [
+          "point"
+        ],
+        "title": "Insight"
       },
       "JobPreview": {
         "properties": {
@@ -2447,6 +2790,50 @@
         ],
         "title": "Qualification"
       },
+      "RangeView": {
+        "properties": {
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "best": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          }
+        },
+        "type": "object",
+        "required": [
+          "low",
+          "best",
+          "high"
+        ],
+        "title": "RangeView"
+      },
       "RefreshOptions": {
         "properties": {
           "scope": {
@@ -2520,6 +2907,210 @@
         },
         "type": "object",
         "title": "RefreshOptions"
+      },
+      "ResearchFindings": {
+        "properties": {
+          "studio": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Studio",
+            "default": ""
+          },
+          "team_size": {
+            "$ref": "#/components/schemas/Estimate"
+          },
+          "development_months": {
+            "$ref": "#/components/schemas/Estimate"
+          },
+          "why_it_worked": {
+            "items": {
+              "$ref": "#/components/schemas/Insight"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "Why It Worked"
+          },
+          "what_held_it_back": {
+            "items": {
+              "$ref": "#/components/schemas/Insight"
+            },
+            "type": "array",
+            "maxItems": 6,
+            "title": "What Held It Back"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "team_size",
+          "development_months"
+        ],
+        "title": "ResearchFindings",
+        "description": "Exactly what the LLM must return (also sent to it as a JSON schema)."
+      },
+      "ResearchRunView": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "title": "Duration Seconds"
+          },
+          "web_searches": {
+            "type": "integer",
+            "title": "Web Searches"
+          },
+          "reviews_used": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Reviews Used"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version"
+          },
+          "findings": {
+            "$ref": "#/components/schemas/ResearchFindings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "created_by",
+          "provider",
+          "model",
+          "cost_usd",
+          "duration_seconds",
+          "web_searches",
+          "reviews_used",
+          "warnings",
+          "prompt_version",
+          "findings"
+        ],
+        "title": "ResearchRunView"
+      },
+      "ResearchStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "cli_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cli Path"
+          },
+          "max_budget_usd": {
+            "type": "number",
+            "title": "Max Budget Usd"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "message",
+          "provider",
+          "cli_path",
+          "max_budget_usd",
+          "job"
+        ],
+        "title": "ResearchStatus"
+      },
+      "ResearchView": {
+        "properties": {
+          "appid": {
+            "type": "integer",
+            "title": "Appid"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchRunView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runs_count": {
+            "type": "integer",
+            "title": "Runs Count"
+          },
+          "economics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EconomicsView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "appid",
+          "run",
+          "runs_count",
+          "economics"
+        ],
+        "title": "ResearchView"
       },
       "RevenueEstimate": {
         "properties": {
@@ -2617,6 +3208,7 @@
           "llm_provider": {
             "type": "string",
             "enum": [
+              "claude_code",
               "none",
               "openai",
               "anthropic"
@@ -2628,6 +3220,59 @@
             "maxLength": 200,
             "title": "Llm Model",
             "default": ""
+          },
+          "claude_cli_path": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Claude Cli Path",
+            "default": ""
+          },
+          "llm_max_budget_usd": {
+            "type": "number",
+            "maximum": 50.0,
+            "minimum": 0.1,
+            "title": "Llm Max Budget Usd",
+            "default": 2.0
+          },
+          "llm_timeout_minutes": {
+            "type": "integer",
+            "maximum": 120.0,
+            "minimum": 2.0,
+            "title": "Llm Timeout Minutes",
+            "default": 15
+          },
+          "salary_per_person_year": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Salary Per Person Year",
+            "default": 50000
+          },
+          "salary_currency": {
+            "type": "string",
+            "maxLength": 8,
+            "minLength": 1,
+            "title": "Salary Currency",
+            "default": "EUR"
+          },
+          "usd_per_salary_unit": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Usd Per Salary Unit",
+            "default": 1.08
+          },
+          "comparison_team_size": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Comparison Team Size",
+            "default": 3
+          },
+          "platform_cut_percent": {
+            "type": "number",
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Platform Cut Percent",
+            "default": 30
           },
           "steam_api_key": {
             "anyOf": [
@@ -2714,6 +3359,7 @@
           "llm_provider": {
             "type": "string",
             "enum": [
+              "claude_code",
               "none",
               "openai",
               "anthropic"
@@ -2727,6 +3373,49 @@
           "llm_api_key_set": {
             "type": "boolean",
             "title": "Llm Api Key Set"
+          },
+          "claude_cli_path": {
+            "type": "string",
+            "title": "Claude Cli Path"
+          },
+          "claude_cli_detected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claude Cli Detected"
+          },
+          "llm_max_budget_usd": {
+            "type": "number",
+            "title": "Llm Max Budget Usd"
+          },
+          "llm_timeout_minutes": {
+            "type": "integer",
+            "title": "Llm Timeout Minutes"
+          },
+          "salary_per_person_year": {
+            "type": "number",
+            "title": "Salary Per Person Year"
+          },
+          "salary_currency": {
+            "type": "string",
+            "title": "Salary Currency"
+          },
+          "usd_per_salary_unit": {
+            "type": "number",
+            "title": "Usd Per Salary Unit"
+          },
+          "comparison_team_size": {
+            "type": "integer",
+            "title": "Comparison Team Size"
+          },
+          "platform_cut_percent": {
+            "type": "number",
+            "title": "Platform Cut Percent"
           },
           "warning": {
             "anyOf": [
@@ -2756,6 +3445,15 @@
           "llm_provider",
           "llm_model",
           "llm_api_key_set",
+          "claude_cli_path",
+          "claude_cli_detected",
+          "llm_max_budget_usd",
+          "llm_timeout_minutes",
+          "salary_per_person_year",
+          "salary_currency",
+          "usd_per_salary_unit",
+          "comparison_team_size",
+          "platform_cut_percent",
           "warning"
         ],
         "title": "SettingsView",
@@ -2778,6 +3476,26 @@
           "bytes"
         ],
         "title": "ShardInfo"
+      },
+      "Source": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Title"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "url"
+        ],
+        "title": "Source"
       },
       "StudiesResponse": {
         "properties": {

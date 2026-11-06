@@ -67,6 +67,19 @@ def _as_dict(value: object) -> dict[str, object]:
     return {}
 
 
+# Public names for other provider modules (untrusted-JSON helpers).
+def as_dict(value: object) -> dict[str, object]:
+    return _as_dict(value)
+
+
+def as_list(value: object) -> list[object]:
+    return _as_list(value)
+
+
+def to_int(value: object, default: int = 0) -> int:
+    return _int(value, default)
+
+
 def _as_list(value: object) -> list[object]:
     if isinstance(value, list):
         items: list[object] = value  # pyright: ignore[reportUnknownVariableType]
