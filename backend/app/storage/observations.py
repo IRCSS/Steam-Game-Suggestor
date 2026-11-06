@@ -20,6 +20,7 @@ from app.domain.observations import (
     ListedApp,
     ReviewsObservation,
     StoreObservation,
+    SyncMarker,
     TagsObservation,
 )
 from app.logging_config import get_logger
@@ -27,12 +28,13 @@ from app.storage.files import machine_id
 
 log = get_logger("observations")
 REFRESH_SECONDS = 3.0
-Observation = StoreObservation | ReviewsObservation | TagsObservation | ListedApp
+Observation = StoreObservation | ReviewsObservation | TagsObservation | ListedApp | SyncMarker
 _KINDS: dict[str, type[Any]] = {
     "store": StoreObservation,
     "reviews": ReviewsObservation,
     "tags": TagsObservation,
     "listed": ListedApp,
+    "marker": SyncMarker,
 }
 _KIND_OF: dict[type[Any], str] = {cls: kind for kind, cls in _KINDS.items()}
 
@@ -63,6 +65,7 @@ class ObservationState:
     review_history: dict[int, list[ReviewsObservation]] = field(
         default_factory=lambda: defaultdict[int, list[ReviewsObservation]](list)
     )
+    markers: dict[str, SyncMarker] = field(default_factory=dict[str, SyncMarker])
     last_fetched_at: str | None = None
 
 
@@ -80,6 +83,11 @@ class ObservationStore:
 
     def _merge(self, obs: Observation) -> None:
         state = self._state
+        if isinstance(obs, SyncMarker):
+            current_marker = state.markers.get(obs.name)
+            if current_marker is None or obs.fetched_at >= current_marker.fetched_at:
+                state.markers[obs.name] = obs
+            return
         if state.last_fetched_at is None or obs.fetched_at > state.last_fetched_at:
             state.last_fetched_at = obs.fetched_at
         if isinstance(obs, ReviewsObservation):

@@ -75,6 +75,15 @@ class ListedApp:
     last_modified: int | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class SyncMarker:
+    """A bookmark shared through the data folder, e.g. when the last deep check finished."""
+
+    name: str
+    fetched_at: str
+    value: str = ""
+
+
 def parse_release_year(text: str) -> int | None:
     match = _YEAR.search(text or "")
     return int(match.group(1)) if match else None

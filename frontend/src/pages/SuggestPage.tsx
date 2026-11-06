@@ -18,7 +18,7 @@ import { FilterSidebar } from "../components/FilterSidebar";
 import { GameCard } from "../components/GameCard";
 import { GameLookup } from "../components/GameLookup";
 import { HistoryList } from "../components/HistoryList";
-import { type FilterForm, formFromDefaults, formToApi } from "../lib/filters";
+import { type FilterForm, followDefaults, formFromDefaults, formToApi } from "../lib/filters";
 import { formatInt } from "../lib/format";
 import { SESSION_ID } from "../lib/session";
 
@@ -52,6 +52,12 @@ export function SuggestPage({
     [meta],
   );
   const [form, setForm] = useState<FilterForm>(defaults);
+  // New data (e.g. a new release year) updates untouched filters; see followDefaults().
+  const [seenDefaults, setSeenDefaults] = useState(defaults);
+  if (seenDefaults !== defaults) {
+    setSeenDefaults(defaults);
+    setForm((current) => followDefaults(current, seenDefaults, defaults));
+  }
   const [resetKey, setResetKey] = useState(0);
   const [count, setCount] = useState<CountResponse | null>(null);
   const [game, setGame] = useState<GameReport | null>(null);

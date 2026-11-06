@@ -206,25 +206,30 @@ class AppListPage:
 
 
 def fetch_app_list(
-    client: httpx.Client, api_key: str, last_appid: int, max_results: int = 10_000
+    client: httpx.Client,
+    api_key: str,
+    last_appid: int,
+    max_results: int = 10_000,
+    if_modified_since: int | None = None,
 ) -> AppListPage:
+    """One page of Steam's official game list, ordered by AppID. With ``if_modified_since``
+    (unix time) only apps changed since then are returned - including OLD AppIDs, which is how
+    games released long after their store page was created are found."""
     if not api_key:
         raise StoreError("app list: a Steam Web API key is required (Settings)", retryable=False)
-    payload = get_json(
-        client,
-        APPLIST_URL,
-        {
-            "key": api_key,
-            "include_games": "true",
-            "include_dlc": "false",
-            "include_software": "false",
-            "include_videos": "false",
-            "include_hardware": "false",
-            "last_appid": last_appid,
-            "max_results": max_results,
-        },
-        "app list",
-    )
+    params: dict[str, str | int] = {
+        "key": api_key,
+        "include_games": "true",
+        "include_dlc": "false",
+        "include_software": "false",
+        "include_videos": "false",
+        "include_hardware": "false",
+        "last_appid": last_appid,
+        "max_results": max_results,
+    }
+    if if_modified_since is not None:
+        params["if_modified_since"] = if_modified_since
+    payload = get_json(client, APPLIST_URL, params, "app list")
     response = _as_dict(payload.get("response"))
     now = utc_now()
     apps = [

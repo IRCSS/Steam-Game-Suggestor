@@ -8,10 +8,12 @@ from fastapi import APIRouter, HTTPException
 
 from app.api.deps import Service
 from app.jobs.runner import JobStatus
-from app.jobs.sync import DiscoverParams, Preview, RefreshParams
+from app.jobs.sync import DeepCheckParams, DiscoverParams, Preview, RefreshParams
 from app.providers.steam_store import StoreError, fetch_app_list
 from app.schemas.app import (
     DataStatus,
+    DeepCheckOptions,
+    DiscoverOptions,
     JobPreview,
     JobRequest,
     JobView,
@@ -65,15 +67,33 @@ def _refresh_params(options: RefreshOptions | None, languages_only: bool = False
     )
 
 
+def _discover_params(options: DiscoverOptions | None) -> DiscoverParams:
+    o = options or DiscoverOptions()
+    return DiscoverParams(
+        max_new=o.max_new,
+        fetch_tags=o.fetch_tags,
+        min_revenue_usd=o.min_revenue_usd,
+        recheck_unreleased=o.recheck_unreleased,
+        max_recheck=o.max_recheck,
+    )
+
+
+def _deep_params(options: DeepCheckOptions | None) -> DeepCheckParams:
+    o = options or DeepCheckOptions()
+    return DeepCheckParams(
+        changed_since_days=o.changed_since_days,
+        recheck_set_aside=o.recheck_set_aside,
+        min_age_days=o.min_age_days,
+        max_apps=o.max_apps,
+        fetch_tags=o.fetch_tags,
+    )
+
+
 def _preview(service: StudyService, body: JobRequest) -> Preview:
     if body.kind == "discover":
-        options = body.discover
-        params = DiscoverParams(
-            max_new=options.max_new if options else 500,
-            fetch_tags=options.fetch_tags if options else True,
-            min_revenue_usd=options.min_revenue_usd if options else None,
-        )
-        return service.preview_discover(params)
+        return service.preview_discover(_discover_params(body.discover))
+    if body.kind == "deep_check":
+        return service.preview_deep_check(_deep_params(body.deep_check))
     if body.kind == "app":
         return Preview(items=1, requests=3, seconds=5)
     return service.preview_refresh(_refresh_params(body.refresh, body.kind == "languages"))
@@ -84,6 +104,7 @@ def data_status(service: Service) -> DataStatus:
     catalog = service.catalog()
     sources = Counter(g.data_source for g in catalog.games)
     state = service.observations.state()
+    set_aside = service.set_aside_counts()
     return DataStatus(
         data_dir=str(service.settings.data_dir),
         total_games=len(catalog.games),
@@ -95,6 +116,9 @@ def data_status(service: Service) -> DataStatus:
         last_update=state.last_fetched_at,
         discovery_cursor_appid=service.discovery_cursor(),
         listed_not_screened=service.pending_screening(),
+        set_aside_unreleased=set_aside["unreleased"],
+        set_aside_below_floor=set_aside["below_floor"],
+        last_deep_check=service.last_deep_check(),
         languages_known=len(service.languages.records()),
         steam_api_key_set=bool(service.api_key()),
         offline=service.settings.offline,
@@ -124,14 +148,9 @@ def preview_job(service: Service, body: JobRequest) -> JobPreview:
 def start_job(service: Service, body: JobRequest) -> JobView:
     try:
         if body.kind == "discover":
-            options = body.discover
-            started = service.start_discover(
-                DiscoverParams(
-                    max_new=options.max_new if options else 500,
-                    fetch_tags=options.fetch_tags if options else True,
-                    min_revenue_usd=options.min_revenue_usd if options else None,
-                )
-            )
+            started = service.start_discover(_discover_params(body.discover))
+        elif body.kind == "deep_check":
+            started = service.start_deep_check(_deep_params(body.deep_check))
         elif body.kind == "app":
             if body.appid is None:
                 raise HTTPException(422, "appid is required")

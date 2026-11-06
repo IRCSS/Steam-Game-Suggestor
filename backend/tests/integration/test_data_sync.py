@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings, read_settings_file, write_settings_file
 from app.domain.observations import (
+    ListedApp,
     ReviewsObservation,
     StoreObservation,
     TagsObservation,
@@ -338,3 +340,113 @@ def test_history_endpoint(
         wait_job(client)
     history = client.get(f"/api/charts/history/{appid}").json()
     assert history["enough_history"] is True and len(history["points"]) == 3
+
+
+# --- re-checks: unreleased games and late releases ------------------------------------------------
+
+
+def _days_ago(days: float) -> str:
+    return (datetime.now(UTC) - timedelta(days=days)).isoformat(timespec="seconds")
+
+
+def test_set_aside_classification() -> None:
+    from app.jobs.sync import set_aside_apps
+    from app.storage.observations import ObservationState
+
+    state = ObservationState()
+    state.reviews = {
+        1: ReviewsObservation(1, _days_ago(5), 0, 0, 0),
+        2: ReviewsObservation(2, _days_ago(5), 40, 30, 10),
+        3: ReviewsObservation(3, _days_ago(5), 5000, 4000, 1000),
+        4: ReviewsObservation(4, _days_ago(5), 10, 10, 0),
+    }
+    state.store = {
+        3: StoreObservation(3, _days_ago(5), "not_game", "music"),
+        4: StoreObservation(4, _days_ago(5), "ok", "game", coming_soon=True),
+    }
+    reasons = {i.appid: i.reason for i in set_aside_apps(state, frozenset({99}))}
+    assert reasons == {1: "unreleased", 2: "below_floor", 4: "unreleased"}  # 3: never a game
+    assert set_aside_apps(state, frozenset({1, 2, 4})) == []  # catalog games are not set aside
+
+
+def test_add_new_games_rechecks_recent_unreleased(
+    online: Callable[[FakeSteam], tuple[TestClient, StudyService]],
+) -> None:
+    fake = FakeSteam([])
+    client, service = online(fake)
+    top = max(g.appid for g in service.catalog().games)
+    launched, still_soon, old_listing = top + 1, top + 2, top + 3
+    # Screened 30 days ago with no reviews (store page before release) ...
+    for appid, listed_days in ((launched, 30), (still_soon, 30), (old_listing, 500)):
+        service.observations.append(
+            ListedApp(appid, _days_ago(listed_days)),
+            ReviewsObservation(appid, _days_ago(30), 0, 0, 0),
+        )
+    # ... and today one of them has launched and sold well.
+    fake.apps = {
+        launched: FakeApp(launched, "Launched", 900, 100, price_cents=1999),
+        still_soon: FakeApp(still_soon, "Soon", 0, 0, coming_soon=True),
+        old_listing: FakeApp(old_listing, "Old page", 900, 100, price_cents=1999),
+    }
+    status = client.get("/api/data/status").json()
+    assert status["set_aside_unreleased"] == 3
+    preview = client.post(
+        "/api/data/jobs/preview", json={"kind": "discover", "discover": {"max_new": 10}}
+    ).json()
+    assert "2 recently listed games" in preview["notes"][0]  # old_listing is outside the window
+
+    client.post("/api/data/jobs", json={"kind": "discover", "discover": {"max_new": 10}})
+    job = wait_job(client)
+    assert job["counters"]["added_qualified"] == 1, job
+    assert client.get(f"/api/games/{launched}").json()["qualification"]["qualified"]
+    assert client.get(f"/api/games/{old_listing}").status_code == 404  # left for the deep check
+
+    # Re-checked games are not re-checked again for 14 days.
+    again = client.post(
+        "/api/data/jobs/preview", json={"kind": "discover", "discover": {"max_new": 10}}
+    ).json()
+    assert "recently listed" not in again["notes"][0]
+    off = {"kind": "discover", "discover": {"max_new": 10, "recheck_unreleased": False}}
+    assert client.post("/api/data/jobs/preview", json=off).json()["items"] == 10
+
+
+def test_deep_check_finds_late_releases_and_rechecks_set_aside(
+    online: Callable[[FakeSteam], tuple[TestClient, StudyService]],
+) -> None:
+    fake = FakeSteam([])
+    client, service = online(fake)
+    games = service.catalog().games
+    top = max(g.appid for g in games)
+    known = {g.appid for g in games}
+    old_ids = [a for a in range(10, top) if a not in known][:4]
+    late, unchanged_old, grown, music = old_ids
+    recent = int(datetime.now(UTC).timestamp()) - 86_400
+    long_ago = int((datetime.now(UTC) - timedelta(days=800)).timestamp())
+    fake.apps = {
+        # Old AppID, never seen, released recently -> found via "changed since".
+        late: FakeApp(late, "Late release", 900, 100, price_cents=1999, last_modified=recent),
+        # Old AppID unchanged for years -> not returned by the scan.
+        unchanged_old: FakeApp(unchanged_old, "Dormant", 900, 100, last_modified=long_ago),
+        # Set aside 60 days ago as below the floor, grew since -> re-checked.
+        grown: FakeApp(grown, "Slow burner", 900, 100, price_cents=1999, last_modified=long_ago),
+        # Not a game -> never re-checked.
+        music: FakeApp(music, "OST", 9000, 0, app_type="music", last_modified=recent),
+    }
+    service.observations.append(
+        ReviewsObservation(grown, _days_ago(60), 30, 30, 0),
+        ReviewsObservation(music, _days_ago(60), 9000, 9000, 0),
+        StoreObservation(music, _days_ago(60), "not_game", "music"),
+    )
+    preview = client.post("/api/data/jobs/preview", json={"kind": "deep_check"}).json()
+    assert preview["items"] == 1 and "set-aside" in preview["notes"][0]  # only "grown" known now
+
+    client.post("/api/data/jobs", json={"kind": "deep_check"})
+    job = wait_job(client)
+    assert job["state"] == "completed", job
+    assert job["counters"]["added_qualified"] == 2  # late + grown
+    assert client.get(f"/api/games/{late}").status_code == 200
+    assert client.get(f"/api/games/{grown}").status_code == 200
+    assert client.get(f"/api/games/{unchanged_old}").status_code == 404
+    assert fake.calls["store"] == 2  # music never looked at again
+    status = client.get("/api/data/status").json()
+    assert status["last_deep_check"] is not None

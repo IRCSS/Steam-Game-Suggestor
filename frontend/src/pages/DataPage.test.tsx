@@ -31,6 +31,9 @@ const STATUS = {
   last_update: null,
   discovery_cursor_appid: 3650000,
   listed_not_screened: 0,
+  set_aside_unreleased: 12,
+  set_aside_below_floor: 340,
+  last_deep_check: null,
   languages_known: 0,
   steam_api_key_set: false,
   offline: false,
@@ -97,8 +100,16 @@ describe("DataPage", () => {
       refresh: { scope: "qualified", years: [], parts: ["reviews", "store"], stale_days: 7 },
     });
 
-    // Discovery needs a key.
+    // Discovery and the deep check need a key; the deep check is its own button.
     expect(screen.getByRole("button", { name: "Find new games" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run deep check" })).toBeDisabled();
+    expect(screen.getByText("12 not released · 340 below floor")).toBeInTheDocument();
+    // Open-ended: even with nothing known yet, the deep check stays runnable (once a key is set).
+    expect(screen.getByTestId("deep-estimate")).toHaveTextContent("+ whatever the scan of changed games finds");
+    const discoverPreview = calls.find((c) => c.url === "/api/data/jobs/preview" && (c.body as { kind: string }).kind === "discover");
+    expect(discoverPreview?.body).toMatchObject({ discover: { recheck_unreleased: true, max_recheck: 200 } });
+    const deepPreview = calls.find((c) => c.url === "/api/data/jobs/preview" && (c.body as { kind: string }).kind === "deep_check");
+    expect(deepPreview?.body).toMatchObject({ deep_check: { changed_since_days: 365, recheck_set_aside: true, min_age_days: 30 } });
     expect(screen.getByText("not set")).toBeInTheDocument();
 
     // Year selection narrows the scope.
@@ -112,6 +123,20 @@ describe("DataPage", () => {
     await waitFor(() => expect(changed.length).toBe(1), { timeout: 4000 });
     expect(notes.at(-1)).toContain("Refreshed 3704 games.");
     expect(screen.getByTestId("job-panel")).toHaveTextContent("3,704 reviews updated");
+  });
+
+  it("keeps the deep check runnable when only the scan has work", async () => {
+    mock((url, body) => {
+      if (url === "/api/data/status") return { ...STATUS, steam_api_key_set: true };
+      const kind = (body as { kind: string }).kind;
+      return { items: kind === "deep_check" ? 0 : 5, requests: 1, seconds: 1, needs_key: false, notes: [] };
+    });
+    render(
+      <DataPage active meta={META} notify={() => undefined} onDataChanged={() => undefined} onOpenSettings={() => undefined} />,
+    );
+    await waitFor(() => expect(screen.getByTestId("deep-estimate")).toHaveTextContent("0 known games"));
+    expect(screen.getByRole("button", { name: "Run deep check" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Find new games" })).toBeEnabled();
   });
 
   it("disables everything offline", async () => {

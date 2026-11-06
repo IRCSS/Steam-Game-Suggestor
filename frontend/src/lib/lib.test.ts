@@ -1,5 +1,13 @@
 import { META } from "../tests/fixtures";
-import { addTag, displayTags, formFromDefaults, formToApi, parseNumber, removeTag } from "./filters";
+import {
+  addTag,
+  displayTags,
+  followDefaults,
+  formFromDefaults,
+  formToApi,
+  parseNumber,
+  removeTag,
+} from "./filters";
 import { formatCompactCurrency, formatCurrency, formatInt } from "./format";
 
 describe("format (legacy parity)", () => {
@@ -44,5 +52,28 @@ describe("filters", () => {
     expect(addTag("Indie", "indie")).toBe("Indie");
     expect(addTag("Indie", "Action")).toBe("Indie, Action");
     expect(removeTag("Indie, Action", "INDIE")).toBe("Action");
+  });
+});
+
+describe("followDefaults (new data arrives)", () => {
+  const before = formFromDefaults(META.default_filters);
+  const after = formFromDefaults({
+    ...META.default_filters,
+    years: [2022, 2023, 2024, 2025, 2026],
+    max_rank: 5400,
+  });
+
+  it("ticks a new year and follows untouched defaults", () => {
+    const next = followDefaults(before, before, after);
+    expect(next.years).toEqual([2022, 2023, 2024, 2025, 2026]);
+    expect(next.maxRank).toBe("5400"); // otherwise games ranked 4,983+ would be hidden
+  });
+
+  it("keeps what the user changed", () => {
+    const edited = { ...before, years: [2023], maxRank: "100", minRevenue: "200000" };
+    const next = followDefaults(edited, before, after);
+    expect(next.years).toEqual([2023, 2026]); // 2022/2024/2025 stay unticked; 2026 is new
+    expect(next.maxRank).toBe("100");
+    expect(next.minRevenue).toBe("200000");
   });
 });

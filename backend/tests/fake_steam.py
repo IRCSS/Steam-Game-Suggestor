@@ -31,6 +31,7 @@ class FakeApp:
     )
     tags: dict[str, int] = field(default_factory=lambda: {"Indie": 120, "Roguelike": 90})
     listed: bool = True  # appears in the official app list
+    last_modified: int = 1  # unix time of the last change (for if_modified_since)
     available: bool = True
 
 
@@ -98,9 +99,17 @@ class FakeSteam:
                 return httpx.Response(403, text="Forbidden")
             last = int(url.params.get("last_appid", "0"))
             limit = int(url.params.get("max_results", "10000"))
-            listed = sorted(a for a, app in self.apps.items() if app.listed and a > last)
+            since = int(url.params.get("if_modified_since", "0"))
+            listed = sorted(
+                a
+                for a, app in self.apps.items()
+                if app.listed and a > last and app.last_modified >= since
+            )
             page = listed[:limit]
-            apps = [{"appid": a, "name": self.apps[a].name, "last_modified": 1} for a in page]
+            apps = [
+                {"appid": a, "name": self.apps[a].name, "last_modified": self.apps[a].last_modified}
+                for a in page
+            ]
             body: dict[str, Any] = {"apps": apps}
             if len(listed) > limit:
                 body.update(have_more_results=True, last_appid=page[-1])

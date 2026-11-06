@@ -56,7 +56,7 @@ test("Data tab shows the catalog and is safely disabled offline", async ({ page,
   await expect(page.getByRole("tab", { name: "Data" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("data-stats")).toContainText("15,521");
   await expect(page.getByRole("alert")).toContainText("Offline mode is on");
-  for (const name of ["Update games", "Find new games", "Look up languages"]) {
+  for (const name of ["Update games", "Find new games", "Run deep check", "Look up languages"]) {
     await expect(page.getByRole("button", { name })).toBeDisabled();
   }
   // Estimates still work offline (no requests are made).

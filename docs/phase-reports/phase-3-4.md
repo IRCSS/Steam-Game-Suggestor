@@ -41,8 +41,7 @@ above). Automated tests use fakes (`backend/tests/fake_steam.py`) and never reac
 
 ## Known limitations
 - **Adding new games needs a Steam Web API key** (free); everything else is keyless.
-- "Since the last AppID" can miss old AppIDs that were released late. A changed-since mode is
-  possible later.
+- Late releases are covered since 0.4 (see "Addendum" below).
 - **A full refresh of all 3,704 qualified games takes about 2 hours** at the default 35
   requests/minute. It is resumable.
 - Steam's limits for these endpoints are not published. On repeated 429s, lower the rate in
@@ -51,3 +50,12 @@ above). Automated tests use fakes (`backend/tests/fake_steam.py`) and never reac
 ## Next
 - Phase 5, LLM research: decide the fields, provider and key.
 - Phase 6 remainder: backup/restore UI, single-instance guard.
+
+## Addendum 0.4 (2026-11-06): late releases, set-aside games, new years
+- "Add new games" also re-checks recently listed games that weren't released yet (capped).
+- New **Deep check** button for the yearly sweep: games changed on Steam (including old AppIDs)
+  and every set-aside game. Status tiles show set-aside counts and the last deep check.
+- Suggest tab: new release years appear ticked; untouched defaults (e.g. worst rank) follow the
+  data.
+- Fixed: the deep check could not be started when nothing was known in advance.
+- Tests: 101 pytest, 30 vitest, 30 Playwright.

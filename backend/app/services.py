@@ -37,15 +37,20 @@ from app.domain.session import SessionStore
 from app.domain.suggestion import MatchCount, Suggestion, count_matches, suggest
 from app.jobs.runner import JobRunner
 from app.jobs.sync import (
+    DEEP_CHECK_MARKER,
+    DeepCheckParams,
     DiscoverParams,
     Preview,
     RefreshParams,
     Target,
     estimate,
+    make_deep_check_task,
     make_discover_task,
     make_refresh_task,
     make_single_app_task,
+    recheck_candidates,
     select_refresh_targets,
+    set_aside_apps,
 )
 from app.logging_config import get_logger
 from app.providers.steam_store import Artwork, fetch_artwork, make_client
@@ -318,14 +323,33 @@ class StudyService:
         known = self.known_appids()
         return sum(1 for a in state.listed if a not in state.reviews and a not in known)
 
+    def discover_rechecks(self, params: DiscoverParams) -> list[int]:
+        if not params.recheck_unreleased or params.max_recheck <= 0:
+            return []
+        return recheck_candidates(
+            self.observations.state(),
+            self.known_appids(),
+            reasons=("unreleased",),
+            checked_before_days=params.recheck_after_days,
+            first_seen_within_days=params.recheck_window_days,
+            limit=params.max_recheck,
+        )
+
     def preview_discover(self, params: DiscoverParams) -> Preview:
-        pending = min(self.pending_screening(), params.max_new)
-        # Unknown number of new AppIDs until the list is read: assume max_new to screen.
-        items = max(pending, params.max_new)
+        # The number of new AppIDs is only known after reading Steam's list: assume max_new.
+        new_items = max(min(self.pending_screening(), params.max_new), params.max_new)
+        rechecks = len(self.discover_rechecks(params))
+        items = new_items + rechecks
         requests, seconds = estimate((["reviews"] for _ in range(items)), self.jobs.intervals)
         notes = [
-            "Most new games have too few reviews to reach the floor; only those that could are "
-            "looked up further (store details, tags), so the real count is usually lower."
+            f"Up to {params.max_new:,} new AppIDs"
+            + (
+                f" + {rechecks:,} recently listed games that were not released yet"
+                if rechecks
+                else ""
+            )
+            + ". Most have too few reviews to reach the floor and cost one request each; only "
+            "promising ones are looked up further, so the real time is usually lower."
         ]
         return Preview(
             items=items,
@@ -334,6 +358,45 @@ class StudyService:
             needs_key=not self.api_key(),
             notes=notes,
         )
+
+    def deep_check_rechecks(self, params: DeepCheckParams) -> list[int]:
+        if not params.recheck_set_aside:
+            return []
+        return recheck_candidates(
+            self.observations.state(),
+            self.known_appids(),
+            reasons=("unreleased", "below_floor"),
+            checked_before_days=params.min_age_days,
+            first_seen_within_days=None,
+            limit=None,
+        )
+
+    def preview_deep_check(self, params: DeepCheckParams) -> Preview:
+        rechecks = len(self.deep_check_rechecks(params))
+        items = min(rechecks, params.max_apps) if params.max_apps else rechecks
+        requests, seconds = estimate((["reviews"] for _ in range(items)), self.jobs.intervals)
+        # Changed-game scan: a year of Steam typically has tens of thousands of changed games;
+        # most are already known or excluded, but the size is only known after listing.
+        notes = [
+            f"Known now: {rechecks:,} set-aside games to re-check. The scan for games changed in "
+            f"the last {params.changed_since_days} days adds more, known only once Steam's list "
+            "is read - this is the slow part and can take several hours. It can be stopped and "
+            "started again; already-checked games are skipped next time."
+        ]
+        return Preview(
+            items=items, requests=requests + 1, seconds=seconds, needs_key=not self.api_key(),
+            notes=notes,
+        )  # fmt: skip
+
+    def last_deep_check(self) -> str | None:
+        marker = self.observations.state().markers.get(DEEP_CHECK_MARKER)
+        return marker.fetched_at if marker else None
+
+    def set_aside_counts(self) -> dict[str, int]:
+        counts = {"unreleased": 0, "below_floor": 0}
+        for item in set_aside_apps(self.observations.state(), self.known_appids()):
+            counts[item.reason] += 1
+        return counts
 
     def api_key(self) -> str:
         """Steam Web API key from settings.json (server side only; never returned by the API)."""
@@ -353,7 +416,22 @@ class StudyService:
             self.observations,
             self.languages,
         )
-        return self.jobs.start("discover", "Discover new games", task)
+        return self.jobs.start("discover", "Add new games", task)
+
+    def start_deep_check(self, params: DeepCheckParams) -> bool:
+        self._require_online()
+        key = self.api_key()
+        if not key:
+            raise OfflineError("Add a Steam Web API key in Settings to run the deep check.")
+        task = make_deep_check_task(
+            params,
+            key,
+            self.settings.qualification_min_revenue_usd,
+            self.known_appids(),
+            self.observations,
+            self.languages,
+        )
+        return self.jobs.start("deep_check", "Deep check", task)
 
     def start_single_app(self, appid: int) -> bool:
         self._require_online()

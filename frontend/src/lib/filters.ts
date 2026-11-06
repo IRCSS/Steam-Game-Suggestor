@@ -110,3 +110,23 @@ export function removeTag(value: string, tag: string): string {
     .filter((t) => t.toLocaleLowerCase() !== tag.toLocaleLowerCase())
     .join(", ");
 }
+
+/**
+ * When the dataset changes (new release year, larger yearly populations), carry the new defaults
+ * into the form - but only for fields the user has not changed. Newly appearing years are ticked
+ * (the default is "all years"); years the user unticked stay unticked.
+ */
+export function followDefaults(form: FilterForm, previous: FilterForm, next: FilterForm): FilterForm {
+  const updated: FilterForm = { ...form };
+  const newYears = next.years.filter((y) => !previous.years.includes(y));
+  if (newYears.length) {
+    updated.years = [...form.years, ...newYears.filter((y) => !form.years.includes(y))].sort();
+  }
+  for (const key of Object.keys(next) as (keyof FilterForm)[]) {
+    if (key === "years") continue;
+    if (form[key] === previous[key] && previous[key] !== next[key]) {
+      (updated as unknown as Record<string, unknown>)[key] = next[key];
+    }
+  }
+  return updated;
+}

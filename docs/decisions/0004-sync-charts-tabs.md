@@ -50,6 +50,31 @@ it starts.
 - **Languages**: store info for games without language data. **Single AppID**: everything for
   one game, including AppIDs not yet in the catalog.
 
+## Late releases and set-aside games (0.4)
+A screened AppID that does not enter the catalog is **set aside** for one of two reasons:
+- *unreleased*: no reviews yet, coming soon, or no store page;
+- *below the floor*: released, but its reviews can't reach the floor.
+
+Non-games (soundtracks, tools) are excluded for good. Three paths handle set-aside games,
+ordered by how often they run:
+1. **Add new games** (frequent, fast): AppIDs above the newest known, plus a capped re-check (200
+   per run by default) of *unreleased* games first seen within the last year and not checked in
+   14 days. This catches the common case of a store page going up before release.
+2. **Update existing games**: only games already in the catalog (unchanged).
+3. **Deep check** (about once a year, separate button, can take hours):
+   - uses `IStoreService/GetAppList` with `if_modified_since` (default: the last 365 days) to
+     find games *changed* on Steam, including old AppIDs that released late;
+   - screens those not yet known, or changed since they were last checked;
+   - optionally re-checks every set-aside game last checked over 30 days ago.
+
+   A completed run records a `deep_check_completed` marker, shared through the data folder.
+   The preview shows the known part; the scan's size is only known while it runs, so the button
+   stays enabled even when nothing is known yet.
+
+On the Suggest tab, filters the user hasn't touched follow the data: new release years appear
+ticked, and the default "worst rank" grows with the yearly populations. Fields the user changed
+are kept.
+
 ## Charts (dataviz method)
 Single-hue blue (`#3987e5`). The only second series is Studies, in orange (`#d95926`) on the
 price scatter. Both were validated on the app's dark panel (#111823): CVD ΔE 26.8, contrast ≥ 3:1.

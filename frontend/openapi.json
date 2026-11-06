@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steam Study Tool API",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "paths": {
     "/api/health": {
@@ -1290,6 +1290,25 @@
             "type": "integer",
             "title": "Listed Not Screened"
           },
+          "set_aside_unreleased": {
+            "type": "integer",
+            "title": "Set Aside Unreleased"
+          },
+          "set_aside_below_floor": {
+            "type": "integer",
+            "title": "Set Aside Below Floor"
+          },
+          "last_deep_check": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Deep Check"
+          },
           "languages_known": {
             "type": "integer",
             "title": "Languages Known"
@@ -1336,6 +1355,9 @@
           "last_update",
           "discovery_cursor_appid",
           "listed_not_screened",
+          "set_aside_unreleased",
+          "set_aside_below_floor",
+          "last_deep_check",
           "languages_known",
           "steam_api_key_set",
           "offline",
@@ -1416,6 +1438,48 @@
         ],
         "title": "DatasetInfo"
       },
+      "DeepCheckOptions": {
+        "properties": {
+          "changed_since_days": {
+            "type": "integer",
+            "maximum": 3650.0,
+            "minimum": 1.0,
+            "title": "Changed Since Days",
+            "default": 365
+          },
+          "recheck_set_aside": {
+            "type": "boolean",
+            "title": "Recheck Set Aside",
+            "default": true
+          },
+          "min_age_days": {
+            "type": "integer",
+            "maximum": 3650.0,
+            "minimum": 0.0,
+            "title": "Min Age Days",
+            "default": 30
+          },
+          "max_apps": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Apps"
+          },
+          "fetch_tags": {
+            "type": "boolean",
+            "title": "Fetch Tags",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "DeepCheckOptions"
+      },
       "DiscoverOptions": {
         "properties": {
           "max_new": {
@@ -1441,6 +1505,19 @@
               }
             ],
             "title": "Min Revenue Usd"
+          },
+          "recheck_unreleased": {
+            "type": "boolean",
+            "title": "Recheck Unreleased",
+            "description": "Also re-check recently listed games that were not released",
+            "default": true
+          },
+          "max_recheck": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Max Recheck",
+            "default": 200
           }
         },
         "type": "object",
@@ -1754,6 +1831,7 @@
             "enum": [
               "refresh",
               "discover",
+              "deep_check",
               "languages",
               "app"
             ],
@@ -1773,6 +1851,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/DiscoverOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deep_check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeepCheckOptions"
               },
               {
                 "type": "null"

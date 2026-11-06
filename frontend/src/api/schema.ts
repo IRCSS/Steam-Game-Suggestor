@@ -595,6 +595,12 @@ export interface components {
             discovery_cursor_appid: number;
             /** Listed Not Screened */
             listed_not_screened: number;
+            /** Set Aside Unreleased */
+            set_aside_unreleased: number;
+            /** Set Aside Below Floor */
+            set_aside_below_floor: number;
+            /** Last Deep Check */
+            last_deep_check: string | null;
             /** Languages Known */
             languages_known: number;
             /** Steam Api Key Set */
@@ -634,6 +640,31 @@ export interface components {
             /** Revenue Model Label */
             revenue_model_label: string;
         };
+        /** DeepCheckOptions */
+        DeepCheckOptions: {
+            /**
+             * Changed Since Days
+             * @default 365
+             */
+            changed_since_days: number;
+            /**
+             * Recheck Set Aside
+             * @default true
+             */
+            recheck_set_aside: boolean;
+            /**
+             * Min Age Days
+             * @default 30
+             */
+            min_age_days: number;
+            /** Max Apps */
+            max_apps?: number | null;
+            /**
+             * Fetch Tags
+             * @default true
+             */
+            fetch_tags: boolean;
+        };
         /** DiscoverOptions */
         DiscoverOptions: {
             /**
@@ -648,6 +679,17 @@ export interface components {
             fetch_tags: boolean;
             /** Min Revenue Usd */
             min_revenue_usd?: number | null;
+            /**
+             * Recheck Unreleased
+             * @description Also re-check recently listed games that were not released
+             * @default true
+             */
+            recheck_unreleased: boolean;
+            /**
+             * Max Recheck
+             * @default 200
+             */
+            max_recheck: number;
         };
         /** GameReport */
         GameReport: {
@@ -759,9 +801,10 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "refresh" | "discover" | "languages" | "app";
+            kind: "refresh" | "discover" | "deep_check" | "languages" | "app";
             refresh?: components["schemas"]["RefreshOptions"] | null;
             discover?: components["schemas"]["DiscoverOptions"] | null;
+            deep_check?: components["schemas"]["DeepCheckOptions"] | null;
             /** Appid */
             appid?: number | null;
             /** Label */

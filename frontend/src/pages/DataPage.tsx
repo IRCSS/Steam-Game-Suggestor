@@ -42,7 +42,8 @@ const COUNTER_LABELS: Record<string, string> = {
   listed: "new AppIDs listed",
   screened: "screened",
   below_floor: "below floor",
-  added_qualified: "new qualified games",
+  added_qualified: "qualified games added",
+  unreleased_or_no_reviews: "not released / no reviews yet",
   not_released_or_not_game: "unreleased / not a game",
   retries: "retries",
   errors: "errors",
@@ -122,10 +123,12 @@ function ActionCard(props: {
   startLabel: string;
   disabled: boolean;
   disabledReason?: string;
+  /** Part of the work is only known once the job runs (e.g. a scan of Steam's list). */
+  openEnded?: string;
   onStart: () => void;
 }) {
   const { preview } = props;
-  const nothing = preview !== null && preview.items === 0;
+  const nothing = preview !== null && preview.items === 0 && !props.openEnded;
   return (
     <section className="panel data-card" aria-labelledby={`${props.id}-title`}>
       <h2 id={`${props.id}-title`} className="data-card-title">
@@ -139,7 +142,9 @@ function ActionCard(props: {
             ? "Estimating…"
             : nothing
               ? "Nothing to do - everything in scope is up to date."
-              : `${formatInt(preview.items)} games · ≈ ${formatInt(preview.requests)} requests · ≈ ${duration(preview.seconds)}`}
+              : props.openEnded
+                ? `${formatInt(preview.items)} known games (≈ ${duration(preview.seconds)}) + ${props.openEnded}`
+                : `${formatInt(preview.items)} games · ≈ ${formatInt(preview.requests)} requests · ≈ ${duration(preview.seconds)}`}
         </span>
         <button
           id={`${props.id}-start`}
@@ -231,6 +236,12 @@ export function DataPage({ active, meta, notify, onDataChanged, onOpenSettings }
   // Discover options
   const [maxNew, setMaxNew] = useState("500");
   const [fetchTags, setFetchTags] = useState(true);
+  const [recheckUnreleased, setRecheckUnreleased] = useState(true);
+  const [maxRecheck, setMaxRecheck] = useState("200");
+  // Deep check options
+  const [changedDays, setChangedDays] = useState("365");
+  const [recheckSetAside, setRecheckSetAside] = useState(true);
+  const [minAgeDays, setMinAgeDays] = useState("30");
   // Languages options
   const [langScope, setLangScope] = useState<"qualified" | "all">("qualified");
   const [langYears, setLangYears] = useState<number[]>([]);
@@ -287,7 +298,21 @@ export function DataPage({ active, meta, notify, onDataChanged, onOpenSettings }
   };
   const discoverRequest: JobRequest = {
     kind: "discover",
-    discover: { max_new: Math.max(1, Number(maxNew) || 500), fetch_tags: fetchTags },
+    discover: {
+      max_new: Math.max(1, Number(maxNew) || 500),
+      fetch_tags: fetchTags,
+      recheck_unreleased: recheckUnreleased,
+      max_recheck: Math.max(0, Number(maxRecheck) || 0),
+    },
+  };
+  const deepRequest: JobRequest = {
+    kind: "deep_check",
+    deep_check: {
+      changed_since_days: Math.max(1, Number(changedDays) || 365),
+      recheck_set_aside: recheckSetAside,
+      min_age_days: Math.max(0, Number(minAgeDays) || 0),
+      fetch_tags: fetchTags,
+    },
   };
   const languageRequest: JobRequest = {
     kind: "languages",
@@ -302,6 +327,7 @@ export function DataPage({ active, meta, notify, onDataChanged, onOpenSettings }
   const refreshPreview = usePreview(refreshRequest, version);
   const discoverPreview = usePreview(discoverRequest, version);
   const languagePreview = usePreview(languageRequest, version);
+  const deepPreview = usePreview(deepRequest, version);
 
   const start = async (request: JobRequest) => {
     try {
@@ -357,6 +383,11 @@ export function DataPage({ active, meta, notify, onDataChanged, onOpenSettings }
                 ? `${formatInt(status.listed_not_screened)} listed, not yet screened`
                 : undefined
             }
+          />
+          <StatTile
+            label="Set aside"
+            value={formatInt(status.set_aside_unreleased + status.set_aside_below_floor)}
+            note={`${formatInt(status.set_aside_unreleased)} not released · ${formatInt(status.set_aside_below_floor)} below floor`}
           />
         </div>
       )}
@@ -493,6 +524,80 @@ export function DataPage({ active, meta, notify, onDataChanged, onOpenSettings }
                 onChange={(e) => setFetchTags(e.target.checked)}
               />
               Fetch tags for new qualified games (SteamSpy)
+            </label>
+            <label className="settings-check">
+              <input
+                id="discover-recheck"
+                type="checkbox"
+                checked={recheckUnreleased}
+                onChange={(e) => setRecheckUnreleased(e.target.checked)}
+              />
+              Also re-check games listed in the last year that weren't released yet, up to
+              <input
+                className="inline-number"
+                type="number"
+                min={0}
+                aria-label="Maximum unreleased games to re-check"
+                value={maxRecheck}
+                disabled={!recheckUnreleased}
+                onChange={(e) => setMaxRecheck(e.target.value)}
+              />
+            </label>
+            <p className="settings-help">
+              Store pages often go up months before release. Those games are re-checked here
+              (every 14 days at most) so a launch is not missed.
+            </p>
+          </div>
+        </ActionCard>
+
+        <ActionCard
+          id="deep"
+          title="Deep check (about once a year)"
+          description={
+            <>
+              Catches what the regular steps skip: games with an <em>old</em> AppID that were
+              released later, and games set aside earlier (not released, or too few reviews) that
+              have taken off since. Slow - can take several hours; it can be stopped and started
+              again. Last deep check:{" "}
+              <strong>{status?.last_deep_check ? when(status.last_deep_check) : "never"}</strong>.
+            </>
+          }
+          preview={deepPreview}
+          openEnded="whatever the scan of changed games finds"
+          startLabel="Run deep check"
+          disabled={busy || !status?.steam_api_key_set}
+          disabledReason={!status?.steam_api_key_set ? "Needs a Steam Web API key" : busyReason}
+          onStart={() => start(deepRequest)}
+        >
+          <div className="data-options">
+            <label className="settings-field narrow">
+              <span className="input-caption">Look for games changed on Steam in the last (days)</span>
+              <input
+                id="deep-days"
+                type="number"
+                min={1}
+                value={changedDays}
+                onChange={(e) => setChangedDays(e.target.value)}
+              />
+            </label>
+            <label className="settings-check">
+              <input
+                id="deep-recheck"
+                type="checkbox"
+                checked={recheckSetAside}
+                onChange={(e) => setRecheckSetAside(e.target.checked)}
+              />
+              Re-check all set-aside games last checked more than
+              <input
+                className="inline-number"
+                type="number"
+                min={0}
+                aria-label="Minimum days since last check"
+                value={minAgeDays}
+                disabled={!recheckSetAside}
+                onChange={(e) => setMinAgeDays(e.target.value)}
+              />
+              days ago
             </label>
           </div>
         </ActionCard>

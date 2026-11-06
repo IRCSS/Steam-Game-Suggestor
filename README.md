@@ -61,8 +61,10 @@ dist\SteamStudyTool\SteamStudyTool.exe     <- double-click to run; close the win
 - **Data**: update the dataset from Steam, with an estimate of requests and time before you start:
   - update existing games (default: qualified games, reviews and store info, skip if updated
     within 7 days; choose years, scope and parts);
-  - add new games (AppIDs after the newest known; **needs a free Steam Web API key**, set in
-    Settings);
+  - add new games (AppIDs after the newest known, plus a quick re-check of recently listed games
+    that weren't released yet; **needs a free Steam Web API key**, set in Settings);
+  - deep check, about once a year (slow; finds old AppIDs released late and set-aside games
+    that took off later; same key);
   - look up languages;
   - update one AppID.
 

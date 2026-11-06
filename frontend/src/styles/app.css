@@ -444,6 +444,14 @@ code {
   color: var(--subtle);
 }
 
+.data-options .inline-number {
+  width: 80px;
+  max-width: 80px;
+  min-height: 32px;
+  margin: 0 6px;
+  padding: 0 8px;
+}
+
 .chart-filters .inline-number {
   width: 80px;
   max-width: 80px;

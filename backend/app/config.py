@@ -26,7 +26,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.4.0"
 SETTINGS_FILE_NAME = "settings.json"
 CATALOG_FILE_NAME = "catalog.sqlite3"
 

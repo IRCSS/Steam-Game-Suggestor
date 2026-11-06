@@ -94,12 +94,25 @@ class DiscoverOptions(BaseModel):
     max_new: int = Field(default=500, ge=1, le=100_000)
     fetch_tags: bool = True
     min_revenue_usd: int | None = Field(default=None, ge=0)
+    recheck_unreleased: bool = Field(
+        default=True, description="Also re-check recently listed games that were not released"
+    )
+    max_recheck: int = Field(default=200, ge=0, le=100_000)
+
+
+class DeepCheckOptions(BaseModel):
+    changed_since_days: int = Field(default=365, ge=1, le=3650)
+    recheck_set_aside: bool = True
+    min_age_days: int = Field(default=30, ge=0, le=3650)
+    max_apps: int | None = Field(default=None, ge=1)
+    fetch_tags: bool = True
 
 
 class JobRequest(BaseModel):
-    kind: Literal["refresh", "discover", "languages", "app"]
+    kind: Literal["refresh", "discover", "deep_check", "languages", "app"]
     refresh: RefreshOptions | None = None
     discover: DiscoverOptions | None = None
+    deep_check: DeepCheckOptions | None = None
     appid: int | None = Field(default=None, ge=1)
     label: str | None = Field(default=None, max_length=100)
 
@@ -144,6 +157,9 @@ class DataStatus(BaseModel):
     last_update: str | None
     discovery_cursor_appid: int
     listed_not_screened: int
+    set_aside_unreleased: int  # screened, not released / no reviews yet
+    set_aside_below_floor: int  # screened, released, but could not reach the floor
+    last_deep_check: str | None
     languages_known: int
     steam_api_key_set: bool
     offline: bool
