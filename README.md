@@ -108,6 +108,10 @@ After changing the API, run `npm run gen-api`. Notes for coding agents are in
 [`CLAUDE.md`](CLAUDE.md); progress and decisions are in `docs/phase-reports/` and
 `docs/decisions/`.
 
+Releases: run `build.bat`, then `npm run package-release`. That writes
+`dist/SteamStudyTool-<version>-windows.zip` with only the exe, `_internal` and `README.txt`
+(never `settings.json` or `data`). Attach the zip to a GitHub release.
+
 Useful extras: `npm run verify-data` (checks the imported catalog against the original file),
 `npm run backup` (zips settings, studies, research and caches), `npm run start` (serves the built
 UI and API from one port).

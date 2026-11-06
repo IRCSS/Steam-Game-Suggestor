@@ -26,7 +26,8 @@
     "test-e2e": "playwright test",
     "check": "npm run lint-py && npm run typecheck-py && npm run typecheck-ui && npm run lint-ui && npm run test-api-contract && npm run test-backend && npm run test-frontend",
     "backup": "uv run python scripts/backup_db.py",
-    "build-desktop": "build.bat --no-pause"
+    "build-desktop": "build.bat --no-pause",
+    "package-release": "uv run python scripts/package_release.py"
   },
   "license": "MIT"
 }
