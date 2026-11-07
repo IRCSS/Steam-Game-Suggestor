@@ -16,8 +16,8 @@ from app.db.connection import open_database
 from app.importer import ImportFormatError, import_legacy_html, sha256_file
 
 MISSING = (
-    "reference/steam_game_suggester.html is not in the repository (it is kept local). "
-    "Copy your steam_game_suggester.html there first - see README, 'Getting the data file'."
+    "reference/steam_game_suggester.html is missing. It is part of the repository: "
+    "restore it with 'git checkout -- reference'."
 )
 
 

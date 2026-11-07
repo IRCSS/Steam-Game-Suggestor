@@ -22,7 +22,7 @@ packages = ["backend/app"]
 testpaths = ["backend/tests"]
 addopts = "-q"
 markers = [
-    "reference: tests that read reference/steam_game_suggester.html (local, offline)",
+    "reference: tests that read reference/steam_game_suggester.html (offline)",
 ]
 
 [tool.ruff]

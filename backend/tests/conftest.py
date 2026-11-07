@@ -64,16 +64,6 @@ def sample_client(sample_settings: Settings) -> Iterator[TestClient]:
         yield client
 
 
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """The original data file is local-only (not in git): skip tests that need it if absent."""
-    if REFERENCE_HTML.is_file():
-        return
-    skip = pytest.mark.skip(reason="reference/steam_game_suggester.html not present (local-only)")
-    for item in items:
-        if "reference" in item.keywords:
-            item.add_marker(skip)
-
-
 HttpHandler = Callable[[httpx.Request], httpx.Response]
 
 
@@ -102,8 +92,7 @@ def online_client_factory(
 
 @pytest.fixture(scope="session")
 def reference_db_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    if not REFERENCE_HTML.is_file():
-        pytest.skip("reference/steam_game_suggester.html is missing")
+    assert REFERENCE_HTML.is_file(), "reference/steam_game_suggester.html is missing"
     path = tmp_path_factory.mktemp("ref") / "data" / CATALOG_FILE_NAME
     conn = open_database(path)
     import_legacy_html(conn, REFERENCE_HTML)

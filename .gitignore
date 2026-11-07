@@ -50,6 +50,5 @@ frontend/.schema.check.ts
 # Claude Code: personal settings stay local
 .claude/settings.local.json
 
-# Local-only inputs (not published): the original data file and the planning document
-/reference/
+# Local-only input (not published): the planning document
 /STEAM_STUDY_TOOL_IMPLEMENTATION_PLAN.md

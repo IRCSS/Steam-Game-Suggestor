@@ -1,7 +1,7 @@
 # Claude Code project instructions
 
 - Read the latest `docs/phase-reports/` report and `docs/decisions/` first. The original plan (`STEAM_STUDY_TOOL_IMPLEMENTATION_PLAN.md`) is local-only and may be absent.
-- Keep `reference/steam_game_suggester.html` unchanged; it is the baseline for both data and visual behavior (SHA-256 checked in tests). It is local-only (git-ignored): tests marked `reference` skip and e2e cannot run without it.
+- Keep `reference/steam_game_suggester.html` unchanged; it is the baseline for both data and visual behavior (SHA-256 checked in tests). It is committed to the repo (`.gitattributes` keeps it byte-exact); tests marked `reference` and e2e rely on it.
 - Work on one phase or vertical slice at a time. Do not opportunistically rewrite unrelated areas.
 - Database/AppID and source schemas are stable contracts. Make catalog schema changes only through numbered SQL migrations in `backend/app/db/migrations/`; study JSON files carry `schema_version`.
 - Business logic belongs in Python domain modules (`backend/app/domain/`), not in route functions or React components.

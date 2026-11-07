@@ -15,20 +15,26 @@ from several PCs at once.
   report: artwork, estimated revenue, rank in its release year, reviews, store pitch and tags.
 - **Studies**: "Add to Studies" archives a game so it's never suggested again. "Export as JPG"
   saves a one-image study sheet, ready for a whiteboard such as Miro.
-- **LLM research**: one click asks Claude Code for a standard table: team size, development time,
-  cost at €50K per person-year, break-even after Steam's 30% cut, and why the game did as well as
-  it did and why not better (from the most helpful Steam reviews). Every item has a confidence
-  and sources.
+- **LLM research**, in two steps that match how a study is made:
+  - **Estimate budget** (quick, web only): team size and development time, then cost at €50K per
+    person-year and break-even after Steam's 30% cut. Use it to decide whether a game fits.
+  - **Analyze reviews** (for games you keep): why the game did as well as it did, and why not
+    better, from the 40 most helpful positive and 40 most helpful negative Steam reviews.
+
+  Every item has a confidence, and the budget estimates have sources.
 - **Charts**: revenue distribution, price vs revenue, tags by median revenue, and more.
 - **Data**: add new Steam games, refresh review counts, and look up languages, with the number of
   requests and the time estimated before you start.
+- **Export dataset** (Settings): all games, Studies, LLM research and review history as CSV and
+  JSON tables in one zip, with a README describing every column, for analysis in Python, R,
+  Excel or anything else.
 
 Revenue is always an **estimate** (`reviews × 45 × price`), never actual sales. See
 [Data and caveats](#data-and-caveats).
 
 ## Quick start (Windows)
 
-1. Put the data file in place (see [Getting the data file](#getting-the-data-file)).
+1. Clone the repository (the [data file](#the-data-file) is included).
 2. Install the prerequisites once:
    `winget install Python.Python.3.12 astral-sh.uv OpenJS.NodeJS.LTS`
 3. Double-click **`build.bat`** (about 2 minutes). It builds and self-tests the app.
@@ -39,8 +45,8 @@ Optional, in Settings (gear icon, top right):
 - **Steam Web API key** (free, [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey)):
   only needed for "Add new games" and the yearly deep check.
 - **LLM research** uses the [Claude Code](https://code.claude.com/docs/) CLI if it's installed on
-  the PC (detected automatically). Each run uses that Claude account: about 1 minute and
-  $0.20–0.50, capped at $2 by default.
+  the PC (detected automatically). Each step uses that Claude account: about 1–2 minutes and
+  roughly $0.20–0.40, capped at $2 by default.
 
 Everything the app stores sits next to the exe, and rebuilding never touches it:
 
@@ -48,20 +54,20 @@ Everything the app stores sits next to the exe, and rebuilding never touches it:
 SteamStudyTool.exe
 settings.json      settings (created on first run; edit with the gear icon)
 data\              game catalog, studies, research, Steam updates, logs
-studiesJPG\        exported study sheets
+studiesJPG\        exported study sheets and dataset zips
 ```
 
-## Getting the data file
+## The data file
 
-The app starts from a single file that is **not in this repository**:
+The app starts from one file that is included in this repository:
 `reference/steam_game_suggester.html` (about 11 MB). It is the original one-page Steam game
 suggester, with 15,521 games released 2022-2025 embedded, made with
 [Steam-Data-Analyzer](https://github.com/IRCSS/Steam-Data-Analyzer) from the public
 [Steam Games Dataset](https://www.kaggle.com/datasets/fronkongames/steam-games-dataset).
 
-Copy it to `reference/steam_game_suggester.html` before building. The import checks its SHA-256
-and refuses any other file. Without it, `build.bat` and `npm run import-data` stop with a clear
-message, and the tests that need it are skipped.
+A fresh clone has everything needed to build and test, with nothing to copy. The import checks
+the file's SHA-256 and refuses any other version, and `.gitattributes` keeps it byte-for-byte
+identical on every OS. Don't edit it: newer games and numbers come from the Data tab.
 
 ## Data and caveats
 
@@ -103,7 +109,8 @@ npm run test-e2e      # Playwright, fully offline, incl. parity with the origina
 | `docs/` | architecture, data dictionary, decisions (ADRs), phase reports |
 
 Tests never touch the network: Steam is faked (`backend/tests/fake_steam.py`) and Claude is
-stubbed. Tests that need the local data file skip without it; the end-to-end suite requires it.
+stubbed. The data file is in the repo, so every test (incl. legacy parity end-to-end) runs on a
+fresh clone.
 After changing the API, run `npm run gen-api`. Notes for coding agents are in
 [`CLAUDE.md`](CLAUDE.md); progress and decisions are in `docs/phase-reports/` and
 `docs/decisions/`.

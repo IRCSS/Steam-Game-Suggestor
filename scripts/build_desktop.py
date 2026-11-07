@@ -174,9 +174,8 @@ def main() -> None:
         raise SystemExit("The desktop build targets Windows.")
     if not REFERENCE_HTML.is_file():
         raise SystemExit(
-            "ERROR: reference/steam_game_suggester.html is not in the repository (it is kept"
-            " local).\nCopy your steam_game_suggester.html there and run build.bat again."
-            " See README, 'Getting the data file'."
+            "ERROR: reference/steam_game_suggester.html is missing. It is part of the repository:"
+            " restore it with 'git checkout -- reference' and run build.bat again."
         )
     build_seed_db()
     stage_frontend()

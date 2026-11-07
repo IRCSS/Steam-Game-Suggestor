@@ -21,10 +21,7 @@ jobs:
       - run: npm run setup
       - run: npx playwright install-deps chromium
       - run: npm run check
-      # The original data file is local-only; without it the backend tests that need it are
-      # skipped and the end-to-end suite (legacy parity against that file) cannot run.
       - run: npm run test-e2e
-        if: hashFiles('reference/steam_game_suggester.html') != ''
       - uses: actions/upload-artifact@v4
         if: always()
         with:
