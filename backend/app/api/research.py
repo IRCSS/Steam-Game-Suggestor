@@ -1,4 +1,4 @@
-"""LLM research per game ("Get more info from LLM")."""
+"""LLM research per game: "Estimate budget" (web) and "Analyze reviews" (Steam reviews)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ from fastapi import APIRouter, HTTPException
 from app.api.data import job_view
 from app.api.deps import Service, require_game
 from app.schemas.app import JobView
-from app.schemas.research import EconomicsView, ResearchRunView, ResearchStatus, ResearchView
+from app.schemas.research import (
+    EconomicsView,
+    ResearchRunView,
+    ResearchStatus,
+    ResearchView,
+    StartResearchRequest,
+)
 from app.services import OfflineError
 
 router = APIRouter(prefix="/api/research", tags=["research"])
@@ -43,12 +49,13 @@ def cancel_research(service: Service) -> JobView:
 def get_research(service: Service, appid: int) -> ResearchView:
     game = require_game(service, appid)
     record = service.research.load(appid)
-    run = record.runs[-1] if record and record.runs else None
+    budget = record.latest("budget") if record else None
+    reviews = record.latest("reviews") if record else None
     economics = None
-    if run is not None:
+    if budget is not None:
         m = service.settings.cost_model
         economics = EconomicsView.of(
-            service.economics(game, run),
+            service.economics(game, budget),
             currency=m.salary_currency,
             team=m.comparison_team_size,
             price=game.price,
@@ -59,18 +66,20 @@ def get_research(service: Service, appid: int) -> ResearchView:
         )
     return ResearchView(
         appid=appid,
-        run=ResearchRunView.of(run) if run else None,
+        budget=ResearchRunView.of(budget) if budget else None,
+        reviews=ResearchRunView.of(reviews) if reviews else None,
         runs_count=len(record.runs) if record else 0,
         economics=economics,
     )
 
 
 @router.post("/{appid}")
-def start_research(service: Service, appid: int) -> JobView:
-    """Start (or refresh) research for one game. Earlier runs are kept."""
+def start_research(service: Service, appid: int, body: StartResearchRequest) -> JobView:
+    """Start (or refresh) the budget estimate or the review analysis for one game. Earlier runs
+    are kept."""
     game = require_game(service, appid)
     try:
-        started = service.start_research(game)
+        started = service.start_research(game, body.kind)
     except OfflineError as exc:
         raise HTTPException(409, str(exc)) from exc
     if not started:

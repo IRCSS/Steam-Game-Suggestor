@@ -16,6 +16,7 @@ export type StudiesResponse = Schemas["StudiesResponse"];
 export type StudyItem = Schemas["StudyItem"];
 export type LanguageStatus = Schemas["LanguageStatusResponse"];
 export type JpegExportResponse = Schemas["JpegExportResponse"];
+export type DatasetExportResponse = Schemas["DatasetExportResponse"];
 export type DataStatus = Schemas["DataStatus"];
 export type JobView = Schemas["JobView"];
 export type JobRequest = Schemas["JobRequest"];
@@ -112,13 +113,15 @@ export const api = {
 
   researchStatus: () => request<ResearchStatus>("/api/research/status"),
   research: (appid: number) => request<ResearchView>(`/api/research/${appid}`),
-  startResearch: (appid: number) => request<JobView>(`/api/research/${appid}`, post({})),
+  startResearch: (appid: number, kind: Schemas["StartResearchRequest"]["kind"]) =>
+    request<JobView>(`/api/research/${appid}`, post({ kind })),
   researchJob: () => request<JobView>("/api/research/job"),
   cancelResearch: () => request<JobView>("/api/research/job/cancel", post({})),
 
   artworkUrl: (appid: number) => `/api/games/${appid}/artwork`,
   exportJpeg: (appid: number, imageBase64: string) =>
     request<JpegExportResponse>("/api/exports/jpeg", post({ appid, image_base64: imageBase64 })),
+  exportDataset: () => request<DatasetExportResponse>("/api/exports/dataset", post({})),
   openFolder: async (target: "data" | "export" | "app") => {
     const response = await fetch("/api/system/open-folder", {
       method: "POST",

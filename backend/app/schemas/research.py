@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.domain.research import Economics, Range, ResearchFindings
+from app.domain.research import Economics, Range, ResearchFindings, ResearchKind, RunKind
 from app.schemas.app import JobView
 from app.storage.research import ResearchRun
 
@@ -73,6 +73,7 @@ class EconomicsView(BaseModel):
 
 
 class ResearchRunView(BaseModel):
+    kind: RunKind
     created_at: str
     created_by: str
     provider: str
@@ -88,6 +89,7 @@ class ResearchRunView(BaseModel):
     @classmethod
     def of(cls, run: ResearchRun) -> ResearchRunView:
         return cls(
+            kind=run.kind,
             created_at=run.created_at,
             created_by=run.created_by,
             provider=run.provider,
@@ -104,9 +106,14 @@ class ResearchRunView(BaseModel):
 
 class ResearchView(BaseModel):
     appid: int
-    run: ResearchRunView | None
+    budget: ResearchRunView | None  # newest run with team size / development time
+    reviews: ResearchRunView | None  # newest run with the review analysis
     runs_count: int
-    economics: EconomicsView | None
+    economics: EconomicsView | None  # from ``budget``
+
+
+class StartResearchRequest(BaseModel):
+    kind: ResearchKind
 
 
 class ResearchStatus(BaseModel):

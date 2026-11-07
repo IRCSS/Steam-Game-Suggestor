@@ -53,6 +53,8 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -108,6 +110,19 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
     }
   };
 
+  const exportDataset = async () => {
+    setExporting(true);
+    try {
+      const saved = await api.exportDataset();
+      setExported(saved.path);
+      notify(`Dataset saved: ${saved.file_name}`);
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Could not export the dataset.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const openFolder = (target: "data" | "export" | "app") =>
     api.openFolder(target).catch(() => notify("Could not open the folder."));
 
@@ -154,6 +169,26 @@ export function SettingsDialog({ onClose, onSaved, notify }: Props) {
               <p className="settings-help">
                 Settings file: <code>{view.settings_file}</code>
               </p>
+            </section>
+
+            <section className="settings-section" data-testid="dataset-export">
+              <h3 className="section-title">Export dataset</h3>
+              <p className="settings-help">
+                All games, Studies, LLM research and review history as CSV and JSON tables in one
+                zip, with a README describing every column - for analysis in Python, R, Excel or
+                any other tool. Saved to the JPG export folder.
+              </p>
+              <button id="exportDatasetButton" className="secondary-button" type="button" disabled={exporting} onClick={exportDataset}>
+                {exporting ? "Exporting…" : "Export dataset"}
+              </button>
+              {exported && (
+                <p className="settings-help">
+                  Saved: <code>{exported}</code>{" "}
+                  <button className="link-button" type="button" onClick={() => openFolder("export")}>
+                    Open folder
+                  </button>
+                </p>
+              )}
             </section>
 
             <section className="settings-section">

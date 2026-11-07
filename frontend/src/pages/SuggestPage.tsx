@@ -24,6 +24,7 @@ import { GameLookup } from "../components/GameLookup";
 import { HistoryList } from "../components/HistoryList";
 import { type FilterForm, followDefaults, formFromDefaults, formToApi } from "../lib/filters";
 import { formatInt } from "../lib/format";
+import { type ResearchKind, jobResearchKind } from "../lib/research";
 import { SESSION_ID } from "../lib/session";
 
 interface Props {
@@ -117,7 +118,7 @@ export function SuggestPage({
       .then((view) => {
         if (cancelled) return;
         setResearch(view);
-        if (view.run) setResearchOpen(true);
+        if (view.budget || view.reviews) setResearchOpen(true);
       })
       .catch(() => !cancelled && setResearch(null));
     return () => {
@@ -304,10 +305,10 @@ export function SuggestPage({
     }
   };
 
-  const runResearch = async () => {
+  const runResearch = async (kind: ResearchKind) => {
     if (!game) return;
     try {
-      const job = await api.startResearch(game.appid);
+      const job = await api.startResearch(game.appid, kind);
       setResearchAppid(game.appid);
       setResearchJob(job);
       researchState.current = "running";
@@ -317,20 +318,19 @@ export function SuggestPage({
     }
   };
 
-  const toggleResearch = () => {
-    const opening = !researchOpen;
-    setResearchOpen(opening);
-    // First time for this game: just run it (no chat, no extra click).
-    if (
-      opening &&
-      game &&
-      research?.appid === game.appid &&
-      !research.run &&
-      researchStatus?.available &&
-      !researchRunning
-    ) {
-      void runResearch();
+  // "Estimate budget" / "Analyze reviews": the first click for a game runs that step (no chat,
+  // no extra click); once it has a result (or is running), the button toggles the panel.
+  const openResearch = (kind: ResearchKind) => {
+    if (!game) return;
+    const current = research?.appid === game.appid ? research : null;
+    const done = Boolean(current?.[kind]);
+    const runningHere = researchRunning && researchAppid === game.appid && jobResearchKind(researchJob) === kind;
+    if (researchOpen && (done || runningHere)) {
+      setResearchOpen(false);
+      return;
     }
+    setResearchOpen(true);
+    if (current && !done && researchStatus?.available && !researchRunning) void runResearch(kind);
   };
 
   const exportJpeg = async () => {
@@ -411,7 +411,7 @@ export function SuggestPage({
               onAnother={suggest}
               onCopyAppId={copyAppId}
               onToggleStudy={toggleStudy}
-              onResearch={toggleResearch}
+              onResearch={openResearch}
               researchPanel={
                 <ResearchPanel
                   view={research?.appid === game.appid ? research : null}

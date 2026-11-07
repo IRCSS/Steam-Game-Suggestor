@@ -73,17 +73,18 @@ test("Export as JPG writes a compact image to studiesJPG", async ({ page, consol
   expect(consoleErrors.filter((e) => !e.includes("status of 404"))).toEqual([]);
 });
 
-test("Get more info from LLM explains why research cannot run (offline)", async ({ page }) => {
+test("Estimate budget / Analyze reviews explain why research cannot run (offline)", async ({ page }) => {
   await page.goto("/");
   await settledCount(page);
   await page.locator("#suggestButton").click(); // default segment: never Vampire Survivors
   await expect(page.locator("#gameTitle")).not.toBeEmpty();
   await expect(page.getByTestId("research-panel")).toHaveCount(0); // no saved research
-  await page.locator("#researchButton").click();
-  await expect(page.getByTestId("research-panel")).toContainText("Offline mode is on");
-  await expect(page.getByRole("button", { name: "Run research" })).toHaveCount(0);
-  await page.locator("#researchButton").click();
-  await expect(page.getByTestId("research-panel")).toHaveCount(0);
+  await page.locator("#researchBudgetButton").click();
+  await expect(page.getByTestId("research-budget")).toContainText("Offline mode is on");
+  await expect(page.getByTestId("research-reviews")).toContainText("Offline mode is on");
+  await expect(page.getByTestId("research-panel").getByRole("button")).toHaveCount(0);
+  await page.locator("#researchReviewsButton").click(); // nothing to run: stays open
+  await expect(page.getByTestId("research-panel")).toBeVisible();
 });
 
 test("Must support English keeps unchecked games and explains why", async ({ page }) => {
@@ -124,6 +125,22 @@ test("Settings dialog shows paths next to the app and applies changes", async ({
   await expect(dialog).toHaveCount(0);
 });
 
+test("Settings exports the dataset as a zip of CSV and JSON tables", async ({ page }) => {
+  await page.goto("/");
+  await settledCount(page);
+  await page.locator("#settingsButton").click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await dialog.locator("#exportDatasetButton").click();
+  await expect(page.locator("#toast")).toContainText(/Dataset saved: steam-study-dataset-\d{14}\.zip/);
+  await expect(dialog.getByTestId("dataset-export")).toContainText(path.join(APP_DIR, "studiesJPG"));
+  const zips = readdirSync(path.join(APP_DIR, "studiesJPG")).filter((f) => f.endsWith(".zip"));
+  expect(zips.length).toBeGreaterThan(0);
+  const zip = readFileSync(path.join(APP_DIR, "studiesJPG", zips.sort().at(-1)!));
+  for (const name of ["README.md", "csv/games.csv", "json/games.json", "csv/research.csv"]) {
+    expect(zip.includes(Buffer.from(name))).toBe(true); // file names are stored in the zip
+  }
+});
+
 test("saved LLM research opens with the game and is part of the JPG", async ({ page }) => {
   await page.goto("/");
   await loadGame(page, String(VAMPIRE));
@@ -137,8 +154,17 @@ test("saved LLM research opens with the game and is part of the JPG", async ({ p
   await expect(table).toContainText("after the 30% platform cut");
   await expect(page.getByTestId("insights-worked")).toContainText("Fixture reason it worked");
   await expect(page.getByTestId("insights-held-back")).toContainText("Fixture bottleneck");
+  // A run saved before budget/reviews were split fills both sections.
+  await expect(page.getByTestId("research-budget")).toContainText("5 web searches");
+  await expect(page.getByTestId("research-reviews")).toContainText("40+40 reviews read");
   // Offline in tests: a new run cannot be started.
-  await expect(page.getByRole("button", { name: "Refresh research" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh budget" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Refresh review analysis" })).toBeDisabled();
+  // With results, the buttons toggle the panel.
+  await page.locator("#researchBudgetButton").click();
+  await expect(panel).toHaveCount(0);
+  await page.locator("#researchReviewsButton").click();
+  await expect(panel).toBeVisible();
 
   await page.locator("#exportJpegButton").click();
   await expect(page.locator("#toast")).toContainText("Vampire Survivors (1794680).jpg", { timeout: 20_000 });

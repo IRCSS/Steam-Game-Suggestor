@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steam Study Tool API",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "paths": {
     "/api/health": {
@@ -616,6 +616,28 @@
         }
       }
     },
+    "/api/exports/dataset": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Dataset",
+        "description": "The whole local dataset as CSV + JSON tables in one zip, for analysis in other tools.",
+        "operationId": "export_dataset_api_exports_dataset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetExportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/system/open-folder": {
       "post": {
         "tags": [
@@ -1071,7 +1093,7 @@
           "research"
         ],
         "summary": "Start Research",
-        "description": "Start (or refresh) research for one game. Earlier runs are kept.",
+        "description": "Start (or refresh) the budget estimate or the review analysis for one game. Earlier runs\nare kept.",
         "operationId": "start_research_api_research__appid__post",
         "parameters": [
           {
@@ -1084,6 +1106,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartResearchRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1513,6 +1545,29 @@
           "job"
         ],
         "title": "DataStatus"
+      },
+      "DatasetExportResponse": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "file_name",
+          "folder"
+        ],
+        "title": "DatasetExportResponse"
       },
       "DatasetInfo": {
         "properties": {
@@ -2946,15 +3001,20 @@
           }
         },
         "type": "object",
-        "required": [
-          "team_size",
-          "development_months"
-        ],
         "title": "ResearchFindings",
-        "description": "Exactly what the LLM must return (also sent to it as a JSON schema)."
+        "description": "What the LLM returns. Each run kind fills its own part (see ``findings_json_schema``);\nthe other part keeps its empty defaults."
       },
       "ResearchRunView": {
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "full",
+              "budget",
+              "reviews"
+            ],
+            "title": "Kind"
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -3014,6 +3074,7 @@
         },
         "type": "object",
         "required": [
+          "kind",
           "created_at",
           "created_by",
           "provider",
@@ -3078,7 +3139,17 @@
             "type": "integer",
             "title": "Appid"
           },
-          "run": {
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchRunView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviews": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ResearchRunView"
@@ -3106,7 +3177,8 @@
         "type": "object",
         "required": [
           "appid",
-          "run",
+          "budget",
+          "reviews",
           "runs_count",
           "economics"
         ],
@@ -3496,6 +3568,23 @@
           "url"
         ],
         "title": "Source"
+      },
+      "StartResearchRequest": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "budget",
+              "reviews"
+            ],
+            "title": "Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "StartResearchRequest"
       },
       "StudiesResponse": {
         "properties": {

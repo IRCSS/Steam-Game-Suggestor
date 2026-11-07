@@ -78,48 +78,77 @@ export const VAMPIRE: GameReport = {
   },
 };
 
-export const RESEARCH: import("../api/client").ResearchView = {
-  appid: 1794680,
-  runs_count: 1,
-  run: {
-    created_at: "2026-11-06T16:00:00+00:00",
-    created_by: "pc-1",
-    provider: "claude_code_cli",
-    model: "claude-opus-5-5",
-    cost_usd: 0.73,
-    duration_seconds: 190,
-    web_searches: 6,
-    reviews_used: { positive: 38, negative: 40 },
-    warnings: [],
-    prompt_version: "1",
-    findings: {
-      studio: "poncle",
-      team_size: {
-        low: 1,
-        high: 3,
-        best: 1,
-        confidence: "high",
-        basis: "Solo developer for most of Early Access, small team later.",
-        sources: [{ title: "Developer interview", url: "https://example.com/interview" }],
-      },
-      development_months: {
-        low: 10,
-        high: 14,
-        best: 12,
-        confidence: "medium",
-        basis: "Early Access Dec 2021, 1.0 Oct 2022.",
-        sources: [{ title: "Steam news", url: "https://example.com/news" }],
-      },
-      why_it_worked: [
-        { point: "Huge value for the price", evidence: "Reviewers cite hours of fun for $5.", confidence: "high" },
-        { point: "Addictive power fantasy", evidence: "One more run loop.", confidence: "high" },
-      ],
-      what_held_it_back: [
-        { point: "Repetitive late game", evidence: "Runs feel samey after 30 hours.", confidence: "medium" },
-      ],
-      notes: "",
+type ResearchView = import("../api/client").ResearchView;
+type ResearchRun = NonNullable<ResearchView["budget"]>;
+
+export const BUDGET_RUN: ResearchRun = {
+  kind: "budget",
+  created_at: "2026-11-06T16:00:00+00:00",
+  created_by: "pc-1",
+  provider: "claude_code_cli",
+  model: "claude-opus-5-5",
+  cost_usd: 0.73,
+  duration_seconds: 70,
+  web_searches: 6,
+  reviews_used: {},
+  warnings: [],
+  prompt_version: "3",
+  findings: {
+    studio: "poncle",
+    team_size: {
+      low: 1,
+      high: 3,
+      best: 1,
+      confidence: "high",
+      basis: "Solo developer for most of Early Access, small team later.",
+      sources: [{ title: "Developer interview", url: "https://example.com/interview" }],
     },
+    development_months: {
+      low: 10,
+      high: 14,
+      best: 12,
+      confidence: "medium",
+      basis: "Early Access Dec 2021, 1.0 Oct 2022.",
+      sources: [{ title: "Steam news", url: "https://example.com/news" }],
+    },
+    why_it_worked: [],
+    what_held_it_back: [],
+    notes: "",
   },
+};
+
+export const REVIEWS_RUN: ResearchRun = {
+  kind: "reviews",
+  created_at: "2026-11-07T09:00:00+00:00",
+  created_by: "pc-2",
+  provider: "claude_code_cli",
+  model: "claude-opus-5-5",
+  cost_usd: 0.21,
+  duration_seconds: 95,
+  web_searches: 0,
+  reviews_used: { positive: 38, negative: 40 },
+  warnings: [],
+  prompt_version: "3",
+  findings: {
+    studio: "",
+    team_size: { confidence: "unknown", basis: "" },
+    development_months: { confidence: "unknown", basis: "" },
+    why_it_worked: [
+      { point: "Huge value for the price", evidence: "Reviewers cite hours of fun for $5.", confidence: "high" },
+      { point: "Addictive power fantasy", evidence: "One more run loop.", confidence: "high" },
+    ],
+    what_held_it_back: [
+      { point: "Repetitive late game", evidence: "Runs feel samey after 30 hours.", confidence: "medium" },
+    ],
+    notes: "",
+  },
+};
+
+export const RESEARCH: ResearchView = {
+  appid: 1794680,
+  runs_count: 2,
+  budget: BUDGET_RUN,
+  reviews: REVIEWS_RUN,
   economics: {
     person_years: { low: 0.8, best: 1, high: 3.5 },
     cost: { low: 41667, best: 50000, high: 175000 },

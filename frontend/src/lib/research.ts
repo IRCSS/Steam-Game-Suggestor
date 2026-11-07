@@ -3,6 +3,8 @@ import type { components } from "../api/schema";
 type Schemas = components["schemas"];
 export type ResearchView = Schemas["ResearchView"];
 export type ResearchStatus = Schemas["ResearchStatus"];
+export type ResearchRun = Schemas["ResearchRunView"];
+export type ResearchKind = Schemas["StartResearchRequest"]["kind"];
 export type RangeView = Schemas["RangeView"];
 export type EstimateView = Schemas["Estimate"];
 export type Confidence = "high" | "medium" | "low" | "unknown";
@@ -14,7 +16,14 @@ export const CONFIDENCE_LABEL: Record<Confidence, string> = {
   unknown: "Unknown",
 };
 
-const trim = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, ""));
+/** Which research step a job runs ("research_budget" / "research_reviews"), if any. */
+export function jobResearchKind(job: { kind: string } | null | undefined): ResearchKind | null {
+  if (job?.kind === "research_budget") return "budget";
+  if (job?.kind === "research_reviews") return "reviews";
+  return null;
+}
+
+const trim =(n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, ""));
 
 /** "3–5 people (best 4)" / "≈ 4 people" / "Unknown" */
 export function estimateText(e: EstimateView, unit: string): string {

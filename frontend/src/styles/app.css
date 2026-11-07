@@ -700,6 +700,12 @@ code {
   min-height: 34px;
 }
 
+.research-section + .research-section {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-soft);
+}
+
 .research-table td {
   vertical-align: top;
   line-height: 1.5;

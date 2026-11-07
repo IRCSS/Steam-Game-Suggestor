@@ -13,6 +13,7 @@ legacy semantics are reproduced exactly (a few milliseconds per request).
 
 from __future__ import annotations
 
+import dataclasses
 import random
 import re
 import sqlite3
@@ -24,16 +25,29 @@ from pathlib import Path
 
 import httpx
 
-from app.config import Settings, read_settings_file
+from app.config import APP_VERSION, Settings, read_settings_file
 from app.db import queries
-from app.db.connection import CatalogError, open_catalog, schema_version
+from app.db.connection import CatalogError, open_catalog, schema_version, utc_now
+from app.domain.dataset import (
+    DATASET_FORMAT_VERSION,
+    GAME_COLUMNS,
+    RESEARCH_COLUMNS,
+    REVIEW_HISTORY_COLUMNS,
+    STUDY_COLUMNS,
+    ResearchEntry,
+    Table,
+    game_rows,
+    readme,
+    research_rows,
+    review_history_rows,
+)
 from app.domain.filters import StudyFilters, legacy_default_filters
 from app.domain.languages import LanguageRecord, english_flags, exclude_non_english
 from app.domain.lookup import find_exact_game, search_games
 from app.domain.models import Game
 from app.domain.observations import build_catalog
 from app.domain.qualification import CatalogPolicy, qualify
-from app.domain.research import Economics, compute_economics
+from app.domain.research import Economics, ResearchKind, compute_economics
 from app.domain.session import SessionStore
 from app.domain.suggestion import MatchCount, Suggestion, count_matches, suggest
 from app.jobs.research import make_research_task
@@ -57,6 +71,7 @@ from app.jobs.sync import (
 from app.logging_config import get_logger
 from app.providers.steam_store import Artwork, fetch_artwork, make_client
 from app.research.claude_cli import Runner, find_claude_cli, subprocess_runner
+from app.storage.dataset_export import write_dataset_zip
 from app.storage.language_cache import LanguageCache
 from app.storage.observations import ObservationStore
 from app.storage.research import ResearchRun, ResearchStore
@@ -461,13 +476,14 @@ class StudyService:
             )
         return True, "Ready"
 
-    def start_research(self, game: Game) -> bool:
+    def start_research(self, game: Game, kind: ResearchKind) -> bool:
         available, message = self.research_availability()
         cli = self.research_cli()
         if not available or cli is None:
             raise OfflineError(message)
         task = make_research_task(
             game,
+            kind,
             cli,
             self.research,
             model=self.settings.llm_model,
@@ -475,7 +491,8 @@ class StudyService:
             timeout_seconds=self.settings.llm_timeout_minutes * 60,
             runner=self.research_runner,
         )
-        return self.research_jobs.start("research", f"Research: {game.name}", task)
+        what = "Budget" if kind == "budget" else "Reviews"
+        return self.research_jobs.start(f"research_{kind}", f"{what}: {game.name}", task)
 
     def economics(self, game: Game, run: ResearchRun) -> Economics:
         return compute_economics(
@@ -505,6 +522,97 @@ class StudyService:
             while len(self._artwork) > ARTWORK_CACHE_SIZE:
                 self._artwork.popitem(last=False)
         return art
+
+    def export_dataset(self) -> Path:
+        """Everything the app knows, as CSV + JSON tables in one zip in the export folder."""
+        catalog = self.catalog()
+        studies = self.studies.all()
+        cost_model = self.settings.cost_model
+        entries: list[ResearchEntry] = []
+        details: list[dict[str, object]] = []
+        for appid in sorted(self.research.appids()):
+            record = self.research.load(appid)
+            if record is None or not record.runs:
+                continue
+            game = catalog.by_appid.get(appid)
+            budget, reviews = record.latest("budget"), record.latest("reviews")
+            econ = self.economics(game, budget) if game and budget else None
+            name = game.name if game else record.runs[-1].name
+            entries.append(
+                ResearchEntry(
+                    appid=appid,
+                    name=name,
+                    budget=budget.findings if budget else None,
+                    budget_at=budget.created_at if budget else None,
+                    economics=econ,
+                    cost_currency=cost_model.salary_currency,
+                    reviews=reviews.findings if reviews else None,
+                    reviews_at=reviews.created_at if reviews else None,
+                )
+            )
+            details.append(
+                {
+                    "appid": appid,
+                    "name": name,
+                    "budget": budget.model_dump() if budget else None,
+                    "economics": dataclasses.asdict(econ) if econ else None,
+                    "reviews": reviews.model_dump() if reviews else None,
+                }
+            )
+        tables = [
+            Table(
+                "games",
+                "Every game in the local catalog, with the latest Steam data.",
+                GAME_COLUMNS,
+                game_rows(
+                    catalog.games,
+                    frozenset(self.qualified_appids()),
+                    english_flags(self.languages.records()),
+                    frozenset(studies),
+                ),
+            ),
+            Table(
+                "studies",
+                "Games added to Studies.",
+                STUDY_COLUMNS,
+                [s.model_dump() for s in sorted(studies.values(), key=lambda s: s.appid)],
+            ),
+            Table(
+                "research",
+                "LLM research: the newest budget estimate and review analysis per game. Cost "
+                f"figures use {cost_model.salary_per_person_year:,.0f} {cost_model.salary_currency}"
+                f" per person-year and a {cost_model.platform_cut:.0%} platform cut.",
+                RESEARCH_COLUMNS,
+                research_rows(entries),
+            ),
+            Table(
+                "review_history",
+                "Every review count fetched from Steam over time (for trends).",
+                REVIEW_HISTORY_COLUMNS,
+                review_history_rows(self.observations.state().review_history),
+            ),
+        ]
+        exported_at = utc_now()
+        manifest = {
+            "format_version": DATASET_FORMAT_VERSION,
+            "app_version": APP_VERSION,
+            "exported_at": exported_at,
+            "qualification_min_revenue_usd": self.settings.qualification_min_revenue_usd,
+            "cost_model": dataclasses.asdict(cost_model),
+            "tables": {t.name: len(t.rows) for t in tables},
+        }
+        floor = f"Qualification floor: ${self.settings.qualification_min_revenue_usd:,} estimated."
+        stamp = re.sub(r"\D", "", exported_at)[:14]
+        target = self.settings.export_dir / f"steam-study-dataset-{stamp}.zip"
+        write_dataset_zip(
+            target,
+            tables,
+            readme(tables, exported_at, [floor]),
+            manifest,
+            {"research-details": details},
+        )
+        log.info("dataset exported", extra={"file": str(target), "games": len(catalog.games)})
+        return target
 
     def save_export(self, game: Game, jpeg: bytes) -> Path:
         if not jpeg.startswith(b"\xff\xd8\xff"):

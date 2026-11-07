@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { GameReport } from "../api/client";
 import { formatCompactCurrency, formatCurrency, formatInt, minorToMajor } from "../lib/format";
+import type { ResearchKind } from "../lib/research";
 import { HeroImage } from "./HeroImage";
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
   onAnother: () => void;
   onCopyAppId: () => void;
   onToggleStudy: () => void;
-  onResearch: () => void;
+  onResearch: (kind: ResearchKind) => void;
   onExportJpeg: () => void;
   researchOpen: boolean;
   researchPanel?: ReactNode;
@@ -191,13 +192,24 @@ export function GameCard(props: Props) {
             {inStudies ? "✓ In Studies" : "＋ Add to Studies"}
           </button>
           <button
-            id="researchButton"
+            id="researchBudgetButton"
             className="secondary-button"
             type="button"
             aria-expanded={props.researchOpen}
-            onClick={props.onResearch}
+            onClick={() => props.onResearch("budget")}
+            title="LLM web research: team size and development time, and the cost they imply"
           >
-            Get more info from LLM
+            Estimate budget
+          </button>
+          <button
+            id="researchReviewsButton"
+            className="secondary-button"
+            type="button"
+            aria-expanded={props.researchOpen}
+            onClick={() => props.onResearch("reviews")}
+            title="LLM reads the most helpful Steam reviews: why it did well, what held it back"
+          >
+            Analyze reviews
           </button>
           <button
             id="exportJpegButton"

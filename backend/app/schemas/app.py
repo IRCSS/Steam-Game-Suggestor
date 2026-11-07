@@ -205,6 +205,12 @@ class JpegExportResponse(BaseModel):
     folder: str
 
 
+class DatasetExportResponse(BaseModel):
+    path: str
+    file_name: str
+    folder: str
+
+
 class OpenFolderRequest(BaseModel):
     target: Literal["data", "export", "app"]
 

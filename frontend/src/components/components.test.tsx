@@ -171,7 +171,7 @@ describe("study, research and export controls", () => {
         onAnother={() => calls.push("another")}
         onCopyAppId={() => calls.push("copy")}
         onToggleStudy={() => calls.push("study")}
-        onResearch={() => calls.push("research")}
+        onResearch={(kind) => calls.push(`research:${kind}`)}
         onExportJpeg={() => calls.push("export")}
         researchOpen={false}
         busy={null}
@@ -181,12 +181,13 @@ describe("study, research and export controls", () => {
     return calls;
   }
 
-  it("shows the three new buttons and languages", async () => {
+  it("shows the study, research and export buttons and languages", async () => {
     const calls = renderCard();
     await userEvent.click(screen.getByRole("button", { name: /Add to Studies/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Get more info from LLM" }));
+    await userEvent.click(screen.getByRole("button", { name: "Estimate budget" }));
+    await userEvent.click(screen.getByRole("button", { name: "Analyze reviews" }));
     await userEvent.click(screen.getByRole("button", { name: "Export as JPG" }));
-    expect(calls).toEqual(["study", "research", "export"]);
+    expect(calls).toEqual(["study", "research:budget", "research:reviews", "export"]);
     expect(document.querySelector("#gameLanguages")).toHaveTextContent("English, French, Japanese");
     expect(screen.getByText("English ✓")).toBeInTheDocument();
     expect(screen.queryByTestId("research-panel")).toBeNull();
@@ -207,7 +208,8 @@ describe("study, research and export controls", () => {
     });
     expect(screen.getByRole("button", { name: "✓ In Studies" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Added 2026-11-06 on pc-1")).toBeInTheDocument();
-    expect(screen.getByTestId("research-panel")).toHaveTextContent("No research yet");
+    expect(screen.getByTestId("research-budget")).toHaveTextContent("Not done yet");
+    expect(screen.getByTestId("research-reviews")).toHaveTextContent("Not done yet");
     expect(screen.getByRole("button", { name: "Exporting…" })).toBeDisabled();
     expect(document.querySelector("#gameLanguages")).toHaveTextContent("Not checked yet");
   });
@@ -243,10 +245,12 @@ const STATUS_OK: ResearchStatus = { available: true, message: "Ready", provider:
 
 describe("ResearchPanel", () => {
   const noop = () => undefined;
+  const NONE = { ...RESEARCH, budget: null, reviews: null, economics: null, runs_count: 0 };
 
-  it("renders the standardized table, confidences and both insight lists", () => {
+  it("renders the budget table and both review lists in their own sections", () => {
     render(<ResearchPanel view={RESEARCH} status={STATUS_OK} job={null} otherJobLabel={null} onRun={noop} onCancel={noop} />);
     const table = screen.getByTestId("research-table");
+    expect(screen.getByTestId("research-budget")).toContainElement(table);
     expect(table).toHaveTextContent("People who worked on it");
     expect(table).toHaveTextContent("1–3 people (best 1)");
     expect(table).toHaveTextContent("10–14 months (best 12)");
@@ -261,39 +265,63 @@ describe("ResearchPanel", () => {
     expect(screen.getAllByText("High").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Developer interview" })).toHaveAttribute("href", "https://example.com/interview");
+    const reviews = screen.getByTestId("research-reviews");
+    expect(reviews).toContainElement(screen.getByTestId("insights-worked"));
     expect(screen.getByTestId("insights-worked")).toHaveTextContent("Huge value for the price");
     expect(screen.getByTestId("insights-held-back")).toHaveTextContent("Repetitive late game");
-    expect(screen.getByText(/Researched 2026-11-06 by Claude Code/)).toHaveTextContent("$0.73");
-    expect(screen.getByRole("button", { name: "Refresh research" })).toBeEnabled();
+    expect(screen.getByTestId("research-budget")).toHaveTextContent(/Researched 2026-11-06 by Claude Code.*6 web searches.*\$0\.73/);
+    expect(reviews).toHaveTextContent(/Researched 2026-11-07 by Claude Code.*38\+40 reviews read.*\$0\.21/);
+    expect(screen.getByRole("button", { name: "Refresh budget" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Refresh review analysis" })).toBeEnabled();
   });
 
-  it("shows run / running / failed / unavailable states", async () => {
+  it("runs each step on its own: budget first, reviews later", async () => {
     const calls: string[] = [];
-    const empty = { ...RESEARCH, run: null, economics: null, runs_count: 0 };
+    const onRun = (kind: string) => calls.push(kind);
     const { rerender } = render(
-      <ResearchPanel view={empty} status={STATUS_OK} job={null} otherJobLabel={null} onRun={() => calls.push("run")} onCancel={() => calls.push("cancel")} />,
+      <ResearchPanel view={NONE} status={STATUS_OK} job={null} otherJobLabel={null} onRun={onRun} onCancel={noop} />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Run research" }));
-    expect(calls).toEqual(["run"]);
+    expect(screen.queryByTestId("research-table")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Estimate budget" }));
+    expect(calls).toEqual(["budget"]);
 
+    // Budget done, reviews not yet: the table shows and the review step can be started.
     rerender(
-      <ResearchPanel view={null} status={STATUS_OK} job={{ ...IDLE, state: "running", recent: ["12:00:00 Asking Claude Code"] }} otherJobLabel={null} onRun={noop} onCancel={() => calls.push("cancel")} />,
+      <ResearchPanel view={{ ...RESEARCH, reviews: null }} status={STATUS_OK} job={null} otherJobLabel={null} onRun={onRun} onCancel={noop} />,
     );
+    expect(screen.getByTestId("research-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("insights-worked")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Analyze reviews" }));
+    expect(calls).toEqual(["budget", "reviews"]);
+  });
+
+  it("shows running / failed / unavailable states per step", async () => {
+    const calls: string[] = [];
+    const running: JobView = { ...IDLE, kind: "research_budget", label: "Budget: Vampire Survivors", state: "running", recent: ["12:00:00 Asking Claude Code"] };
+    const { rerender } = render(
+      <ResearchPanel view={NONE} status={STATUS_OK} job={running} otherJobLabel={null} onRun={noop} onCancel={() => calls.push("cancel")} />,
+    );
+    expect(screen.getByTestId("research-budget")).toContainElement(screen.getByTestId("research-running"));
     expect(screen.getByTestId("research-running")).toHaveTextContent("Asking Claude Code");
+    // One job at a time: the review step waits.
+    expect(screen.getByRole("button", { name: "Analyze reviews" })).toBeDisabled();
+    expect(screen.getByTestId("research-reviews")).toHaveTextContent("Busy: Budget: Vampire Survivors");
     await userEvent.click(screen.getByRole("button", { name: "Stop" }));
-    expect(calls).toEqual(["run", "cancel"]);
+    expect(calls).toEqual(["cancel"]);
 
     rerender(
-      <ResearchPanel view={RESEARCH} status={STATUS_OK} job={{ ...IDLE, state: "failed", message: "stopped at the $2.00 budget cap" }} otherJobLabel={null} onRun={noop} onCancel={noop} />,
+      <ResearchPanel view={RESEARCH} status={STATUS_OK} job={{ ...IDLE, kind: "research_reviews", state: "failed", message: "stopped at the $2.00 budget cap" }} otherJobLabel={null} onRun={noop} onCancel={noop} />,
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("budget cap");
-    expect(screen.getByTestId("research-table")).toBeInTheDocument(); // previous result still shown
+    expect(screen.getByRole("alert")).toHaveTextContent("Review analysis failed: stopped at the $2.00 budget cap");
+    expect(screen.getByTestId("research-reviews")).toContainElement(screen.getByRole("alert"));
+    expect(screen.getByTestId("insights-worked")).toBeInTheDocument(); // previous result still shown
 
     rerender(
       <ResearchPanel view={null} status={{ ...STATUS_OK, available: false, message: "Claude Code CLI not found on this PC." }} job={null} otherJobLabel={null} onRun={noop} onCancel={noop} />,
     );
-    expect(screen.getByText("Claude Code CLI not found on this PC.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Run research" })).toBeNull();
+    expect(screen.getAllByText("Claude Code CLI not found on this PC.")).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Estimate budget" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Analyze reviews" })).toBeNull();
   });
 
   it("is included at the bottom of the JPG export when present", () => {
@@ -301,7 +329,11 @@ describe("ResearchPanel", () => {
     const section = screen.getByTestId("export-research");
     expect(section).toHaveTextContent("1–3 people (best 1)");
     expect(section).toHaveTextContent("Why it performed as well as it did");
+    expect(section).toHaveTextContent("Reviews analyzed 2026-11-07");
     expect(section.querySelector("a")).toBeNull(); // no links in an image
+    rerender(<ExportCard game={VAMPIRE} exportedAt={new Date("2026-11-06")} research={{ ...RESEARCH, reviews: null }} onArtworkSettled={noop} />);
+    expect(screen.getByTestId("export-research")).toHaveTextContent("1–3 people");
+    expect(screen.queryByTestId("insights-worked")).toBeNull();
     rerender(<ExportCard game={VAMPIRE} exportedAt={new Date("2026-11-06")} research={null} onArtworkSettled={noop} />);
     expect(screen.queryByTestId("export-research")).toBeNull();
   });

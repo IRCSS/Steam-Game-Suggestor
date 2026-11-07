@@ -28,7 +28,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from app.domain.research import CostModel
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-APP_VERSION = "0.5.0"
+APP_VERSION = "0.6.0"
 SETTINGS_FILE_NAME = "settings.json"
 SETTINGS_VERSION = 2
 CATALOG_FILE_NAME = "catalog.sqlite3"

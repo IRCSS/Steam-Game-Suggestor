@@ -1,8 +1,10 @@
 """LLM research: the standardized findings schema and the deterministic economics derived from it.
 
-The LLM only researches what needs the web (team size, development time) and summarizes the
-supplied reviews (why it worked / what held it back). Cost and break-even are CALCULATED here from
-those estimates and the user's cost model, so they are reproducible and follow settings changes.
+Research runs in two separate steps, matching how studies are made:
+* "budget": web research only (team size, development time) - quick, decides whether a game fits.
+* "reviews": summarizes the supplied reviews (why it worked / what held it back), no web access.
+Runs saved before the split did both at once ("full"). Cost and break-even are CALCULATED here
+from the estimates and the user's cost model, so they are reproducible and follow settings changes.
 Pure module - no I/O.
 """
 
@@ -13,10 +15,16 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 SCHEMA_VERSION = "1"
 
 Confidence = Literal["high", "medium", "low", "unknown"]
+ResearchKind = Literal["budget", "reviews"]
+RunKind = Literal["full", "budget", "reviews"]  # "full": both at once (runs before the split)
+KIND_COVERS: dict[ResearchKind, tuple[RunKind, ...]] = {
+    "budget": ("full", "budget"),
+    "reviews": ("full", "reviews"),
+}
 CONFIDENCE_ORDER: dict[str, int] = {"unknown": 0, "low": 1, "medium": 2, "high": 3}
 
 
@@ -56,20 +64,23 @@ class Insight(BaseModel):
 
 
 class ResearchFindings(BaseModel):
-    """Exactly what the LLM must return (also sent to it as a JSON schema)."""
+    """What the LLM returns. Each run kind fills its own part (see ``findings_json_schema``);
+    the other part keeps its empty defaults."""
 
     model_config = ConfigDict(extra="ignore")
 
     studio: str = Field(default="", max_length=200)
-    team_size: Estimate  # people who worked on the game during its development
-    development_months: Estimate  # start of development to full (1.0) release
+    # people who worked on the game during its development
+    team_size: Estimate = Field(default_factory=Estimate)
+    # start of development to full (1.0) release
+    development_months: Estimate = Field(default_factory=Estimate)
     why_it_worked: list[Insight] = Field(default_factory=list[Insight], max_length=6)
     what_held_it_back: list[Insight] = Field(default_factory=list[Insight], max_length=6)
     notes: str = Field(default="", max_length=2000)
 
 
-def findings_json_schema() -> dict[str, object]:
-    """JSON schema for the CLI's --json-schema (strict: no extra keys)."""
+def findings_json_schema(kind: ResearchKind) -> dict[str, object]:
+    """JSON schema for the CLI's --json-schema (strict: no extra keys), per run kind."""
 
     def estimate(unit: str) -> dict[str, object]:
         number = {"type": ["number", "null"], "minimum": 0}
@@ -111,22 +122,25 @@ def findings_json_schema() -> dict[str, object]:
         "required": ["point", "evidence", "confidence"],
         "additionalProperties": False,
     }
-    return {
-        "type": "object",
-        "properties": {
+    properties: dict[str, object] = (
+        {
             "studio": {"type": "string"},
             "team_size": estimate("people"),
             "development_months": estimate("months"),
+        }
+        if kind == "budget"
+        else {
             "why_it_worked": {"type": "array", "items": insight, "minItems": 1, "maxItems": 5},
             "what_held_it_back": {"type": "array", "items": insight, "minItems": 1, "maxItems": 5},
-            "notes": {"type": "string"},
-        },
-        "required": [
-            "studio", "team_size", "development_months", "why_it_worked", "what_held_it_back",
-            "notes",
-        ],
+        }
+    )
+    properties["notes"] = {"type": "string"}
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": list(properties),
         "additionalProperties": False,
-    }  # fmt: skip
+    }
 
 
 def sanitize(findings: ResearchFindings) -> tuple[ResearchFindings, list[str]]:

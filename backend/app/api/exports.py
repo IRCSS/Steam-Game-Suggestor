@@ -1,4 +1,4 @@
-"""JPEG export of a game report, plus the same-origin artwork proxy it needs."""
+"""JPEG export of a game report (plus the artwork proxy it needs) and the dataset export."""
 
 from __future__ import annotations
 
@@ -10,7 +10,12 @@ import sys
 from fastapi import APIRouter, HTTPException, Response
 
 from app.api.deps import Service, require_game
-from app.schemas.app import JpegExportRequest, JpegExportResponse, OpenFolderRequest
+from app.schemas.app import (
+    DatasetExportResponse,
+    JpegExportRequest,
+    JpegExportResponse,
+    OpenFolderRequest,
+)
 
 router = APIRouter(prefix="/api", tags=["exports"])
 
@@ -43,6 +48,16 @@ def export_jpeg(service: Service, body: JpegExportRequest) -> JpegExportResponse
     except OSError as exc:
         raise HTTPException(500, f"Could not write the JPEG: {exc}") from exc
     return JpegExportResponse(path=str(path), file_name=path.name, folder=str(path.parent))
+
+
+@router.post("/exports/dataset")
+def export_dataset(service: Service) -> DatasetExportResponse:
+    """The whole local dataset as CSV + JSON tables in one zip, for analysis in other tools."""
+    try:
+        path = service.export_dataset()
+    except OSError as exc:
+        raise HTTPException(500, f"Could not write the dataset: {exc}") from exc
+    return DatasetExportResponse(path=str(path), file_name=path.name, folder=str(path.parent))
 
 
 @router.post("/system/open-folder", status_code=204)

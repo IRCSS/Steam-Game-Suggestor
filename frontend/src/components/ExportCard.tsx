@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import { api, type GameReport, type ResearchView } from "../api/client";
 import { formatCompactCurrency, formatCurrency, formatInt, minorToMajor } from "../lib/format";
 import { PLACEHOLDER_IMAGE } from "./HeroImage";
-import { ResearchTable } from "./ResearchPanel";
+import { BudgetTable, ReviewInsights } from "./ResearchPanel";
 
 interface Props {
   game: GameReport;
@@ -106,13 +106,16 @@ export const ExportCard = forwardRef<HTMLDivElement, Props>(function ExportCard(
         </section>
       </div>
 
-      {research?.run && (
+      {(research?.budget || research?.reviews) && (
         <section className="export-research" data-testid="export-research">
           <h3 className="section-title">LLM research</h3>
-          <ResearchTable view={research} forExport />
+          <BudgetTable view={research} forExport />
+          <ReviewInsights run={research.reviews} />
           <p className="export-small">
-            Researched {research.run.created_at.slice(0, 10)} by Claude Code from public sources and
-            the most helpful Steam reviews. Cost and break-even are calculated from the estimates.
+            {research.budget &&
+              `Budget researched ${research.budget.created_at.slice(0, 10)} by Claude Code from public sources; cost and break-even are calculated from the estimates. `}
+            {research.reviews &&
+              `Reviews analyzed ${research.reviews.created_at.slice(0, 10)} from the most helpful Steam reviews.`}
           </p>
         </section>
       )}

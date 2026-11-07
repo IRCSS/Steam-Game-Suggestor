@@ -41,10 +41,15 @@ Session view history is now kept in memory per app process (`app/domain/session.
 | Path | Content |
 |---|---|
 | `studies/<appid>.json` | `schema_version`, `appid`, `name`, `status` ("study"), `added_at`, `added_by` (PC name), `updated_at`, `notes`, `research` (reserved for LLM results). Unknown keys preserved. |
+| `research/<appid>.json` | `appid`, `runs` (last 10, newest last). Each run: `kind` (`budget`, `reviews`, or `full` for runs saved before the split; missing = `full`), `prompt_version`, `created_at`, `created_by`, `model`, `cost_usd`, `duration_seconds`, `web_searches`, `reviews_used`, `warnings`, `findings`. See ADR 0006. |
 | `cache/languages-<pc>.jsonl` | one line per lookup: `appid`, `status` (`ok`/`unavailable`), `languages` (list), `fetched_at`, `source` |
 | `observations/steam-<pc>.jsonl` | one line per Steam fetch: `kind` = `store` (name, type, description, is_free, price_cents (undiscounted USD), release date/year, languages), `reviews` (total/positive/negative, all languages), `tags` (top 20 SteamSpy tags), or `listed` (AppID from the official app list). Newest per kind wins; review lines also form the history. |
 | `catalog.version` | version of the installed catalog (source SHA + schema) |
 | `logs/<pc>.log`, `logs/launcher-<pc>.log` | JSON logs |
+
+Dataset export (Settings -> Export dataset): `<export folder>/steam-study-dataset-<timestamp>.zip`
+with the `games`, `studies`, `research` and `review_history` tables as CSV and JSON. The columns
+are described in the zip's README.md (generated from `backend/app/domain/dataset.py`).
 
 `settings.json` (next to the exe): `version`, `data_dir`, `export_dir`,
 `qualification_min_revenue_usd`, `offline_mode`, `steam.{api_key, store_requests_per_minute}`,

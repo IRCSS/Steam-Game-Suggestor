@@ -279,6 +279,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/exports/dataset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Dataset
+         * @description The whole local dataset as CSV + JSON tables in one zip, for analysis in other tools.
+         */
+        post: operations["export_dataset_api_exports_dataset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/open-folder": {
         parameters: {
             query?: never;
@@ -523,7 +543,8 @@ export interface paths {
         put?: never;
         /**
          * Start Research
-         * @description Start (or refresh) research for one game. Earlier runs are kept.
+         * @description Start (or refresh) the budget estimate or the review analysis for one game. Earlier runs
+         *     are kept.
          */
         post: operations["start_research_api_research__appid__post"];
         delete?: never;
@@ -688,6 +709,15 @@ export interface components {
                 [key: string]: number;
             };
             job: components["schemas"]["JobView"];
+        };
+        /** DatasetExportResponse */
+        DatasetExportResponse: {
+            /** Path */
+            path: string;
+            /** File Name */
+            file_name: string;
+            /** Folder */
+            folder: string;
         };
         /** DatasetInfo */
         DatasetInfo: {
@@ -1176,7 +1206,8 @@ export interface components {
         };
         /**
          * ResearchFindings
-         * @description Exactly what the LLM must return (also sent to it as a JSON schema).
+         * @description What the LLM returns. Each run kind fills its own part (see ``findings_json_schema``);
+         *     the other part keeps its empty defaults.
          */
         ResearchFindings: {
             /**
@@ -1184,8 +1215,8 @@ export interface components {
              * @default
              */
             studio: string;
-            team_size: components["schemas"]["Estimate"];
-            development_months: components["schemas"]["Estimate"];
+            team_size?: components["schemas"]["Estimate"];
+            development_months?: components["schemas"]["Estimate"];
             /** Why It Worked */
             why_it_worked?: components["schemas"]["Insight"][];
             /** What Held It Back */
@@ -1198,6 +1229,11 @@ export interface components {
         };
         /** ResearchRunView */
         ResearchRunView: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "full" | "budget" | "reviews";
             /** Created At */
             created_at: string;
             /** Created By */
@@ -1240,7 +1276,8 @@ export interface components {
         ResearchView: {
             /** Appid */
             appid: number;
-            run: components["schemas"]["ResearchRunView"] | null;
+            budget: components["schemas"]["ResearchRunView"] | null;
+            reviews: components["schemas"]["ResearchRunView"] | null;
             /** Runs Count */
             runs_count: number;
             economics: components["schemas"]["EconomicsView"] | null;
@@ -1404,6 +1441,14 @@ export interface components {
             title: string;
             /** Url */
             url: string;
+        };
+        /** StartResearchRequest */
+        StartResearchRequest: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "budget" | "reviews";
         };
         /** StudiesResponse */
         StudiesResponse: {
@@ -2034,6 +2079,26 @@ export interface operations {
             };
         };
     };
+    export_dataset_api_exports_dataset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetExportResponse"];
+                };
+            };
+        };
+    };
     open_folder_api_system_open_folder_post: {
         parameters: {
             query?: never;
@@ -2428,7 +2493,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartResearchRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

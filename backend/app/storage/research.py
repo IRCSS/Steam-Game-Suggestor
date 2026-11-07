@@ -1,7 +1,8 @@
 """Research results: one JSON file per game in ``<data>/research/<appid>.json`` (shared drive safe).
 
-Each file keeps the last few runs (newest last), so "Refresh research" never loses the previous
-answer. Only the validated findings and run metadata are stored - never review text.
+Each file keeps the last few runs (newest last; budget and review runs mixed), so a refresh never
+loses the previous answer. Only the validated findings and run metadata are stored - never review
+text.
 """
 
 from __future__ import annotations
@@ -12,7 +13,14 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from app.domain.research import PROMPT_VERSION, SCHEMA_VERSION, ResearchFindings
+from app.domain.research import (
+    KIND_COVERS,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    ResearchFindings,
+    ResearchKind,
+    RunKind,
+)
 from app.logging_config import get_logger
 from app.storage.files import atomic_write_json
 
@@ -25,6 +33,7 @@ class ResearchRun(BaseModel):
 
     schema_version: str = SCHEMA_VERSION
     prompt_version: str = PROMPT_VERSION
+    kind: RunKind = "full"  # runs saved before budget/reviews were split did both
     appid: int
     name: str
     created_at: str
@@ -45,6 +54,10 @@ class ResearchFile(BaseModel):
     appid: int
     runs: list[ResearchRun] = Field(default_factory=list[ResearchRun])
 
+    def latest(self, kind: ResearchKind) -> ResearchRun | None:
+        """Newest run that answers ``kind`` (a pre-split "full" run answers both)."""
+        return next((r for r in reversed(self.runs) if r.kind in KIND_COVERS[kind]), None)
+
 
 class ResearchStore:
     def __init__(self, folder: Path) -> None:
@@ -64,9 +77,9 @@ class ResearchStore:
             log.warning("unreadable research file", extra={"file": str(path), "err": repr(exc)})
             return None
 
-    def latest(self, appid: int) -> ResearchRun | None:
+    def latest(self, appid: int, kind: ResearchKind) -> ResearchRun | None:
         record = self.load(appid)
-        return record.runs[-1] if record and record.runs else None
+        return record.latest(kind) if record else None
 
     def add(self, run: ResearchRun) -> None:
         with self._lock:
