@@ -61,6 +61,7 @@ export const VAMPIRE: GameReport = {
   qualification: { qualified: true, threshold_usd: 100000 },
   freshness: "imported_legacy_unknown_age",
   steam_url: "https://store.steampowered.com/app/1794680",
+  header_image: null,
   languages: {
     status: "ok",
     english: true,

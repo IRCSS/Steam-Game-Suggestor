@@ -12,7 +12,7 @@ import json
 import threading
 import time
 from collections import defaultdict
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -47,7 +47,9 @@ def _decode(raw: dict[str, Any]) -> Observation | None:
         raw["languages"] = tuple(raw["languages"] or ())
     if "tags" in raw:
         raw["tags"] = tuple(raw["tags"] or ())
-    return cls(**raw)  # type: ignore[no-any-return]
+    # Ignore keys written by newer app versions on other PCs instead of dropping the line.
+    known = {f.name for f in fields(cls)}
+    return cls(**{k: v for k, v in raw.items() if k in known})  # type: ignore[no-any-return]
 
 
 @dataclass

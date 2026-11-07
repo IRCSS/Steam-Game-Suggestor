@@ -516,7 +516,8 @@ class StudyService:
                 self._artwork.move_to_end(appid)
                 return self._artwork[appid]
         with self._http_factory() as client:
-            art = fetch_artwork(client, appid)
+            game = self.get_game(appid)
+            art = fetch_artwork(client, appid, game.header_image if game else None)
         with self._lock:
             self._artwork[appid] = art
             while len(self._artwork) > ARTWORK_CACHE_SIZE:

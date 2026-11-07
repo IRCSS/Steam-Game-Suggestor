@@ -1938,6 +1938,17 @@
             "type": "string",
             "title": "Steam Url"
           },
+          "header_image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Header Image"
+          },
           "languages": {
             "$ref": "#/components/schemas/LanguageInfo"
           },
@@ -1962,6 +1973,7 @@
           "qualification",
           "freshness",
           "steam_url",
+          "header_image",
           "languages",
           "study",
           "provenance"

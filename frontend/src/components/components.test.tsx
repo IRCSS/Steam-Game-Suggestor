@@ -131,6 +131,16 @@ describe("HeroImage", () => {
     fireEvent.error(img);
     expect(img.getAttribute("src")).toBe(PLACEHOLDER_IMAGE);
   });
+
+  it("tries Steam's recorded header URL first (newer apps have hashed paths)", () => {
+    const hashed = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/10/abc123/header.jpg?t=1";
+    render(<HeroImage appid={10} name="X" headerImage={hashed} />);
+    const img = screen.getByAltText("X Steam artwork") as HTMLImageElement;
+    expect(img.src).toBe(hashed);
+    fireEvent.error(img);
+    expect(img.src).toBe(marketingImageUrls(10)[0]); // then the AppID-based paths
+    expect(marketingImageUrls(10, hashed)).toHaveLength(4);
+  });
 });
 
 describe("HistoryList", () => {

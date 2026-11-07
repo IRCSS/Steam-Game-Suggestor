@@ -40,6 +40,9 @@ class StoreObservation:
     release_year: int | None = None
     coming_soon: bool = False
     languages: tuple[str, ...] = ()
+    # Steam's own header artwork URL. Newer apps only have hashed CDN paths, which cannot be
+    # derived from the AppID. "" = not recorded (observations made before it was stored).
+    header_image: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +131,8 @@ def _overlay(
             changes["release_date"] = store.release_date_text
         if store.release_year:
             changes["release_year"] = store.release_year
+        if store.header_image:
+            changes["header_image"] = store.header_image
         store_price = _store_price(store)
         if store_price is not None:
             price = store_price
@@ -173,6 +178,7 @@ def _new_game(
         price_context="steam_store_initial_price_usd",
         release_date=store.release_date_text or None,
         is_free=store.is_free,
+        header_image=store.header_image or None,
     )
     return _overlay(base, None, None, tags)
 

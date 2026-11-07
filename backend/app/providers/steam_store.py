@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -161,6 +162,7 @@ def fetch_store_info(client: httpx.Client, appid: int) -> StoreObservation:
         languages=parse_supported_languages(
             languages_raw if isinstance(languages_raw, str) else None
         ),
+        header_image=steam_image_url(data.get("header_image")),
     )
 
 
@@ -265,8 +267,22 @@ def fetch_app_list(
 # --- artwork -------------------------------------------------------------------------------------
 
 
-def artwork_urls(appid: int) -> list[str]:
+def steam_image_url(value: object) -> str:
+    """An artwork URL from Steam's store data, kept only if it points at Steam's image CDN (the
+    URL is shown in the browser and fetched by the export proxy). "" otherwise."""
+    if not isinstance(value, str) or len(value) > 500:
+        return ""
+    url = urlsplit(value)
+    host = (url.hostname or "").lower()
+    return value if url.scheme == "https" and host.endswith(".steamstatic.com") else ""
+
+
+def artwork_urls(appid: int, header_image: str | None = None) -> list[str]:
+    """Steam's recorded header URL first (newer apps only have hashed paths), then the classic
+    AppID-based paths that work for most older apps."""
+    preferred = [header_image] if header_image and steam_image_url(header_image) else []
     return [
+        *preferred,
         f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg",
         f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/capsule_616x353.jpg",
         f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg",
@@ -279,8 +295,10 @@ class Artwork:
     content_type: str
 
 
-def fetch_artwork(client: httpx.Client, appid: int, max_bytes: int = 5_000_000) -> Artwork | None:
-    for url in artwork_urls(appid):
+def fetch_artwork(
+    client: httpx.Client, appid: int, header_image: str | None = None, max_bytes: int = 5_000_000
+) -> Artwork | None:
+    for url in artwork_urls(appid, header_image):
         try:
             response = client.get(url)
         except httpx.TransportError:

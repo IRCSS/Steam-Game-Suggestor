@@ -80,7 +80,7 @@ export function GameCard(props: Props) {
   return (
     <article id="caseStudy" className="panel case-study">
       <div className="hero">
-        <HeroImage key={game.appid} appid={game.appid} name={game.name} />
+        <HeroImage key={game.appid} appid={game.appid} name={game.name} headerImage={game.header_image} />
         <div className="hero-gradient"></div>
         <div className="hero-content">
           <div className="case-label">Indie case study</div>

@@ -100,6 +100,7 @@ class GameReport(BaseModel):
     qualification: Qualification
     freshness: str
     steam_url: str
+    header_image: str | None  # Steam's artwork URL when known (try first; newer apps need it)
     languages: LanguageInfo
     study: StudyState
     provenance: Provenance
@@ -168,6 +169,7 @@ class GameReport(BaseModel):
                 else f"reviews_as_of_{game.reviews_observed_at[:10]}"
             ),
             steam_url=f"https://store.steampowered.com/app/{game.appid}",
+            header_image=game.header_image,
             languages=LanguageInfo.from_record(language),
             study=StudyState(
                 in_studies=study is not None,

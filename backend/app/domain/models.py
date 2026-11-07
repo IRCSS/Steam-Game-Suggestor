@@ -41,6 +41,7 @@ class Game:
     price_context: str = "legacy_price_context_unknown"
     release_date: str | None = None
     is_free: bool | None = None
+    header_image: str | None = None  # Steam's artwork URL from the store; None = derive from AppID
     legacy_rank_in_year: int | None = None
     legacy_qualifying_games_in_year: int | None = None
     legacy_revenue_percentile_in_year: float | None = None

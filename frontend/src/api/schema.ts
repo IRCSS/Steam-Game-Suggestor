@@ -872,6 +872,8 @@ export interface components {
             freshness: string;
             /** Steam Url */
             steam_url: string;
+            /** Header Image */
+            header_image: string | null;
             languages: components["schemas"]["LanguageInfo"];
             study: components["schemas"]["StudyState"];
             provenance: components["schemas"]["Provenance"];

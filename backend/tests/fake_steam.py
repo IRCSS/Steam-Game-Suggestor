@@ -26,6 +26,7 @@ class FakeApp:
     app_type: str = "game"
     release: str = "Mar 3, 2026"
     coming_soon: bool = False
+    header_image: str | None = None  # Steam's hashed artwork URL, as newer apps have
     languages: str = (
         "English<strong>*</strong>, French<br><strong>*</strong>languages with full audio support"
     )
@@ -74,6 +75,8 @@ class FakeSteam:
                 "supported_languages": app.languages,
                 "release_date": {"coming_soon": app.coming_soon, "date": app.release},
             }
+            if app.header_image is not None:
+                data["header_image"] = app.header_image
             if app.price_cents is not None and not app.is_free:
                 data["price_overview"] = {
                     "currency": "USD", "initial": app.price_cents, "final": app.price_cents,
