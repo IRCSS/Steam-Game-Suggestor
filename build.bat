@@ -21,7 +21,20 @@ call uv sync --group desktop || goto :fail
 
 echo.
 echo ==^> Installing UI dependencies (npm)
+rem A clean install is only needed when package-lock.json changed since the last one: its
+rem SHA-256 is stamped into node_modules after each install. No stamp or no hash = install.
+set "LOCK_HASH="
+for /f "skip=1 delims=" %%H in ('certutil -hashfile "frontend\package-lock.json" SHA256 2^>nul') do if not defined LOCK_HASH set "LOCK_HASH=%%H"
+set "LOCK_STAMP=frontend\node_modules\.lock-sha256"
+set "OLD_HASH="
+if exist "%LOCK_STAMP%" set /p OLD_HASH=<"%LOCK_STAMP%"
+if defined LOCK_HASH if "%LOCK_HASH%"=="%OLD_HASH%" (
+  echo     package-lock.json unchanged since the last install - skipping
+  goto :ui_deps_done
+)
 call npm --prefix frontend ci --no-audit --no-fund || goto :fail
+if defined LOCK_HASH >"%LOCK_STAMP%" echo %LOCK_HASH%
+:ui_deps_done
 
 echo.
 echo ==^> Building UI
